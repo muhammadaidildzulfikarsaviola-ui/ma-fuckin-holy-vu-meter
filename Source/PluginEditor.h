@@ -19,7 +19,6 @@ private:
     void timerCallback() override;
     void refreshLoopbackDevices();
     void updateMeterSource();
-
     void configureMeterHeader(juce::Label& label, const juce::String& text);
 
     MaFuckinHolyVUMeterAudioProcessor& audioProcessor;
@@ -28,12 +27,12 @@ private:
     juce::Label titleLabel, subtitleLabel, statusLabel, routingLabel;
     juce::Label peakLeftHeader, peakRightHeader, vuLeftHeader, vuRightHeader;
     juce::ComboBox sourceModeBox, loopbackDeviceBox;
-    juce::TextButton refreshDevicesButton, connectLoopbackButton;
+    juce::TextButton refreshDevicesButton, connectLoopbackButton, resetMetersButton;
 
     // Top: current true peak (red) + maximum true peak (black).
     AnalogMeter peakLeftMeter  { "L", "TRUE PEAK", true, true };
     AnalogMeter peakRightMeter { "R", "TRUE PEAK", true, true };
-    // Bottom: VU needle (black) + true-peak hold needle (red).
+    // Bottom: VU needle (black) + peak hold (red).
     AnalogMeter vuLeftMeter    { "L", "VU", true, false };
     AnalogMeter vuRightMeter   { "R", "VU", true, false };
 

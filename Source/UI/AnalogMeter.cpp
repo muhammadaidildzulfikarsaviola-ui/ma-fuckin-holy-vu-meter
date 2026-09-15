@@ -4,27 +4,25 @@ namespace
 {
 constexpr float pi = juce::MathConstants<float>::pi;
 
-// Hardware-style VU scale: 0 VU is slightly right of vertical.
 struct ScalePoint { float db; float angleDegrees; };
 
+// Hardware-inspired sweep: 0 VU sits noticeably to the right of vertical.
 constexpr ScalePoint scale[] =
 {
-    { -20.0f, 222.0f }, { -10.0f, 246.0f }, { -7.0f, 255.0f },
-    {  -5.0f, 263.0f }, {  -3.0f, 269.0f }, {  -2.0f, 273.0f },
-    {  -1.0f, 277.0f }, {   0.0f, 282.0f }, {   1.0f, 293.0f },
-    {   2.0f, 304.0f }, {   3.0f, 315.0f }
+    { -20.0f, 218.0f }, { -10.0f, 247.0f }, { -7.0f, 257.0f },
+    {  -5.0f, 264.0f }, {  -3.0f, 270.0f }, {  -2.0f, 273.0f },
+    {  -1.0f, 276.0f }, {   0.0f, 281.0f }, {   1.0f, 294.0f },
+    {   2.0f, 307.0f }, {   3.0f, 320.0f }
 };
 
 float dbToAngle(float db)
 {
     const auto clampedDb = juce::jlimit(-20.0f, 3.0f, db);
     for (size_t i = 1; i < std::size(scale); ++i)
-    {
         if (clampedDb <= scale[i].db)
             return juce::jmap(clampedDb, scale[i - 1].db, scale[i].db,
                               scale[i - 1].angleDegrees * pi / 180.0f,
                               scale[i].angleDegrees * pi / 180.0f);
-    }
     return scale[std::size(scale) - 1].angleDegrees * pi / 180.0f;
 }
 
@@ -63,90 +61,102 @@ void AnalogMeter::paint(juce::Graphics& g)
 {
     auto bounds = getLocalBounds().toFloat().reduced(4.0f);
     g.setColour(juce::Colour(0xff0b0d0e));
-    g.fillRoundedRectangle(bounds, 10.0f);
-    g.setColour(juce::Colour(0xff5a5650));
-    g.drawRoundedRectangle(bounds, 10.0f, 1.5f);
+    g.fillRoundedRectangle(bounds, 8.0f);
+    g.setColour(juce::Colour(0xff514d46));
+    g.drawRoundedRectangle(bounds, 8.0f, 1.2f);
 
     for (const auto point : { bounds.getTopLeft(), bounds.getTopRight(),
                               bounds.getBottomLeft(), bounds.getBottomRight() })
     {
-        auto screw = juce::Rectangle<float>(point.x - 5.0f, point.y - 5.0f, 10.0f, 10.0f);
-        g.setColour(juce::Colour(0xff25282a));
+        auto screw = juce::Rectangle<float>(point.x - 4.0f, point.y - 4.0f, 8.0f, 8.0f);
+        g.setColour(juce::Colour(0xff202325));
         g.fillEllipse(screw);
-        g.setColour(juce::Colour(0xff8d8a80));
+        g.setColour(juce::Colour(0xff77736a));
         g.drawEllipse(screw, 1.0f);
-        g.drawLine(screw.getX() + 2.5f, screw.getCentreY(),
-                   screw.getRight() - 2.5f, screw.getCentreY(), 1.0f);
     }
 
-    // Keep the face clean. Meter/channel names are now rendered in the panel header.
-    auto inner = bounds.reduced(14.0f, 12.0f);
-    const auto centre = juce::Point<float>(inner.getCentreX(), inner.getBottom() + 2.0f);
-    const auto radius = juce::jmin(inner.getWidth() * 0.49f, inner.getHeight() * 1.02f);
-    const auto face = juce::Rectangle<float>(centre.x - radius, centre.y - radius,
-                                             radius * 2.0f, radius * 1.10f);
-
-    g.setColour(juce::Colour(0xffe8ddc3));
-    g.fillEllipse(face);
-    g.setColour(juce::Colour(0xff8c806c));
-    g.drawEllipse(face, 1.2f);
+    // Rectangular illuminated face, closer to the Waves-style hardware look.
+    auto face = bounds.reduced(14.0f, 13.0f).withTrimmedBottom(5.0f);
+    const auto faceCentre = face.getCentre();
+    juce::ColourGradient lamp(juce::Colour(0xfffff8df), faceCentre.x, faceCentre.y,
+                              juce::Colour(0xffc5b486), face.getX(), face.getBottom(), true);
+    lamp.addColour(0.38, juce::Colour(0xfff3e7c7));
+    lamp.addColour(0.75, juce::Colour(0xffdfcea5));
+    g.setGradientFill(lamp);
+    g.fillRoundedRectangle(face, 5.0f);
+    g.setColour(juce::Colour(0xff766a56));
+    g.drawRoundedRectangle(face, 5.0f, 1.1f);
 
     g.saveState();
     g.reduceClipRegion(face.toNearestInt());
 
-    for (float db = -20.0f; db <= 3.001f; db += 0.5f)
+    // Pivot is low, as on a physical moving-coil meter.
+    const auto centre = juce::Point<float>(face.getCentreX(), face.getBottom() + 1.0f);
+    const auto radius = juce::jmin(face.getWidth() * 0.43f, face.getHeight() * 1.06f);
+
+    // Deliberately sparse: only one tick per dB, with stronger labelled ticks.
+    for (int dbInt = -20; dbInt <= 3; ++dbInt)
     {
+        const auto db = static_cast<float>(dbInt);
         const auto angle = dbToAngle(db);
-        const auto isMajor = std::abs(db - std::round(db)) < 0.001f;
-        const auto outer = polarPoint(centre, radius * 0.84f, angle);
-        const auto innerTick = polarPoint(centre, radius * (isMajor ? 0.66f : 0.75f), angle);
-        g.setColour(db >= 0.0f ? juce::Colour(0xffb52c20) : juce::Colour(0xff171817));
-        g.drawLine(innerTick.x, innerTick.y, outer.x, outer.y, isMajor ? 1.7f : 0.75f);
+        const bool major = dbInt == -20 || dbInt == -10 || dbInt == -7 || dbInt == -5
+                           || dbInt == -3 || dbInt == 0 || dbInt == 3;
+        const auto outer = polarPoint(centre, radius * 0.79f, angle);
+        const auto innerTick = polarPoint(centre, radius * (major ? 0.61f : 0.69f), angle);
+        g.setColour(db >= 0.0f ? juce::Colour(0xffb52d22) : juce::Colour(0xff292620));
+        g.drawLine(innerTick.x, innerTick.y, outer.x, outer.y, major ? 1.55f : 0.9f);
     }
 
     const float labelValues[] = { -20.0f, -10.0f, -7.0f, -5.0f, -3.0f, 0.0f, 3.0f };
-    g.setColour(juce::Colour(0xff171817));
-    g.setFont(juce::Font(juce::FontOptions{}.withHeight(12.0f).withStyle("Bold")));
+    g.setColour(juce::Colour(0xff25221d));
+    g.setFont(juce::Font(juce::FontOptions{}.withHeight(10.5f).withStyle("Bold")));
     for (const auto db : labelValues)
     {
-        const auto point = polarPoint(centre, radius * 0.57f, dbToAngle(db));
-        auto labelBounds = juce::Rectangle<float>(point.x - 18.0f, point.y - 8.0f, 36.0f, 16.0f);
-        const auto text = db > 0.0f ? "+" + juce::String(static_cast<int>(db)) : juce::String(static_cast<int>(db));
+        const auto point = polarPoint(centre, radius * 0.53f, dbToAngle(db));
+        auto labelBounds = juce::Rectangle<float>(point.x - 16.0f, point.y - 7.0f, 32.0f, 14.0f);
+        const auto text = db > 0.0f ? "+" + juce::String(static_cast<int>(db))
+                                    : juce::String(static_cast<int>(db));
         g.drawText(text, labelBounds.toNearestInt(), juce::Justification::centred);
     }
 
-    // Program percentage scale below the -20..0 range.
     const float percentageDb[] = { -20.0f, -15.0f, -10.0f, -5.0f, 0.0f };
     const int percentageValues[] = { 20, 40, 60, 80, 100 };
-    g.setFont(juce::Font(juce::FontOptions{}.withHeight(9.0f)));
+    g.setFont(juce::Font(juce::FontOptions{}.withHeight(8.0f)));
     for (size_t i = 0; i < std::size(percentageDb); ++i)
     {
-        const auto point = polarPoint(centre, radius * 0.48f, dbToAngle(percentageDb[i]));
-        auto labelBounds = juce::Rectangle<float>(point.x - 17.0f, point.y + 3.0f, 34.0f, 13.0f);
+        const auto point = polarPoint(centre, radius * 0.43f, dbToAngle(percentageDb[i]));
+        auto labelBounds = juce::Rectangle<float>(point.x - 14.0f, point.y + 2.0f, 28.0f, 11.0f);
         g.drawText(juce::String(percentageValues[i]) + "%",
                    labelBounds.toNearestInt(), juce::Justification::centred);
     }
 
-    // Main needle: VU on the bottom row, current true peak on the top row.
-    const auto mainAngle = dbToAngle(mainLevelDb);
-    const auto mainTip = polarPoint(centre, radius * 0.70f, mainAngle);
-    const auto mainBase = polarPoint(centre, radius * 0.055f, mainAngle + pi);
-    g.setColour(secondaryIsMax ? juce::Colour(0xffc52b20) : juce::Colour(0xff171817));
-    g.drawLine(mainBase.x, mainBase.y, mainTip.x, mainTip.y, 2.2f);
+    // Small label, high on the face so it never collides with the needles.
+    g.setFont(juce::Font(juce::FontOptions{}.withHeight(12.0f).withStyle("Bold")));
+    g.drawText(meterType,
+               face.withY(face.getY() + face.getHeight() * 0.18f)
+                   .withHeight(16.0f).toNearestInt(),
+               juce::Justification::centred);
 
-    // Secondary needle: true-peak MAX on top, VU peak-hold on bottom.
+    // Main/current needle.
+    const auto mainAngle = dbToAngle(mainLevelDb);
+    const auto mainTip = polarPoint(centre, radius * 0.68f, mainAngle);
+    const auto mainBase = polarPoint(centre, radius * 0.045f, mainAngle + pi);
+    g.setColour(secondaryIsMax ? juce::Colour(0xff171716) : juce::Colour(0xff171716));
+    g.drawLine(mainBase.x, mainBase.y, mainTip.x, mainTip.y, 1.8f);
+
+    // Secondary: MAX true peak or VU peak hold.
     if (showSecondary)
     {
         const auto secondaryAngle = dbToAngle(secondaryLevelDb);
-        const auto secondaryTip = polarPoint(centre, radius * 0.73f, secondaryAngle);
-        const auto secondaryBase = polarPoint(centre, radius * 0.055f, secondaryAngle + pi);
+        const auto secondaryTip = polarPoint(centre, radius * 0.70f, secondaryAngle);
+        const auto secondaryBase = polarPoint(centre, radius * 0.045f, secondaryAngle + pi);
         g.setColour(juce::Colour(0xffb72b1c));
-        g.drawLine(secondaryBase.x, secondaryBase.y, secondaryTip.x, secondaryTip.y, 2.0f);
+        g.drawLine(secondaryBase.x, secondaryBase.y, secondaryTip.x, secondaryTip.y, 1.8f);
     }
 
-    g.setColour(juce::Colour(0xff171817));
-    g.fillEllipse(juce::Rectangle<float>(centre.x - 9.0f, centre.y - 9.0f, 18.0f, 18.0f));
-    g.setColour(juce::Colour(0xffa9a69d));
-    g.fillEllipse(juce::Rectangle<float>(centre.x - 4.0f, centre.y - 4.0f, 8.0f, 8.0f));
+    g.setColour(juce::Colour(0xff171716));
+    g.fillEllipse(juce::Rectangle<float>(centre.x - 7.0f, centre.y - 7.0f, 14.0f, 14.0f));
+    g.setColour(juce::Colour(0xffaaa49a));
+    g.fillEllipse(juce::Rectangle<float>(centre.x - 2.7f, centre.y - 2.7f, 5.4f, 5.4f));
     g.restoreState();
 }

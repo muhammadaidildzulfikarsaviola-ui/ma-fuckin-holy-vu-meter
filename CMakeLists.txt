@@ -39,8 +39,6 @@ target_sources(MaFuckinHolyVUMeter
 
         Source/UI/AnalogMeter.cpp
         Source/UI/AnalogMeter.h
-        Source/UI/DigitalMeter.cpp
-        Source/UI/DigitalMeter.h
 
         Source/Audio/WasapiLoopbackCapture.cpp
         Source/Audio/WasapiLoopbackCapture.h

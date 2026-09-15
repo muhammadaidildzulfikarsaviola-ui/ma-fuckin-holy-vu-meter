@@ -80,6 +80,9 @@ void TruePeakMeter::processInterleaved(const float* interleavedSamples,
 
 void TruePeakMeter::processOversampledBlock(const juce::dsp::AudioBlock<float>& block) noexcept
 {
+    constexpr float currentDecayDbPerSecond = 20.0f;
+    const auto blockSeconds = static_cast<float>(block.getNumSamples() / (sampleRateHz * 4.0));
+
     for (int channel = 0; channel < channelCount; ++channel)
     {
         const auto* data = block.getChannelPointer(static_cast<size_t>(channel));
@@ -90,12 +93,11 @@ void TruePeakMeter::processOversampledBlock(const juce::dsp::AudioBlock<float>& 
             peak = juce::jmax(peak, std::abs(data[sample]));
 
         const auto db = juce::Decibels::gainToDecibels(peak, -100.0f);
+        auto current = currentPeakDb[static_cast<size_t>(channel)].load(std::memory_order_relaxed);
+        current = juce::jmax(db, current - currentDecayDbPerSecond * blockSeconds);
+        currentPeakDb[static_cast<size_t>(channel)].store(current, std::memory_order_relaxed);
 
-        // Current peak is the peak of the latest processed audio block.
-        // It is intentionally NOT accumulated, otherwise the needle can get stuck.
-        currentPeakDb[static_cast<size_t>(channel)].store(db, std::memory_order_relaxed);
-
-        // Maximum true peak is retained until the processor is reset.
+        // Maximum true peak is retained until the processor is prepared/reset.
         auto currentMax = maxPeakDb[static_cast<size_t>(channel)].load(std::memory_order_relaxed);
         while (db > currentMax
                && !maxPeakDb[static_cast<size_t>(channel)].compare_exchange_weak(

@@ -16,8 +16,11 @@ const juce::String MaFuckinHolyVUMeterAudioProcessor::getName() const
     return JucePlugin_Name;
 }
 
-void MaFuckinHolyVUMeterAudioProcessor::prepareToPlay(double sampleRate, int)
+void MaFuckinHolyVUMeterAudioProcessor::prepareToPlay(double newSampleRate, int)
 {
+    sampleRate = newSampleRate > 0.0 ? newSampleRate : 44100.0;
+    testSignalPhase = 0.0;
+
     peakMeter.prepare();
     rmsMeter.prepare(sampleRate);
 }
@@ -44,10 +47,20 @@ void MaFuckinHolyVUMeterAudioProcessor::processBlock(
 {
     juce::ScopedNoDenormals noDenormals;
 
-    peakMeter.process(buffer);
-    rmsMeter.process(buffer);
+    if (testSignalEnabled.load(std::memory_order_relaxed))
+    {
+        // Temporary diagnostic mode. The generated 440 Hz signal is fed only
+        // into the meters. The real audio buffer remains untouched.
+        peakMeter.processTestSignal(buffer.getNumSamples(), sampleRate, testSignalPhase);
+        rmsMeter.processTestSignal(buffer.getNumSamples(), sampleRate, testSignalPhase);
+    }
+    else
+    {
+        peakMeter.process(buffer);
+        rmsMeter.process(buffer);
+    }
 
-    // Meter only. Keep the audio path untouched so the plugin remains a
+    // Meter only. Keep the real audio path untouched so the plugin remains a
     // transparent passthrough when inserted into a DAW channel.
 }
 
@@ -59,6 +72,19 @@ float MaFuckinHolyVUMeterAudioProcessor::getPeakDb() const noexcept
 float MaFuckinHolyVUMeterAudioProcessor::getRmsDb() const noexcept
 {
     return rmsMeter.getRmsDb();
+}
+
+void MaFuckinHolyVUMeterAudioProcessor::setTestSignalEnabled(bool enabled) noexcept
+{
+    testSignalEnabled.store(enabled, std::memory_order_relaxed);
+
+    if (enabled)
+        testSignalPhase = 0.0;
+}
+
+bool MaFuckinHolyVUMeterAudioProcessor::isTestSignalEnabled() const noexcept
+{
+    return testSignalEnabled.load(std::memory_order_relaxed);
 }
 
 bool MaFuckinHolyVUMeterAudioProcessor::hasEditor() const

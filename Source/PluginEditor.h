@@ -5,9 +5,8 @@
 #include "Audio/WasapiLoopbackCapture.h"
 #include "UI/AnalogMeter.h"
 
-class MaFuckinHolyVUMeterAudioProcessorEditor
-    : public juce::AudioProcessorEditor,
-      private juce::Timer
+class MaFuckinHolyVUMeterAudioProcessorEditor : public juce::AudioProcessorEditor,
+                                                private juce::Timer
 {
 public:
     explicit MaFuckinHolyVUMeterAudioProcessorEditor(MaFuckinHolyVUMeterAudioProcessor&);
@@ -24,17 +23,15 @@ private:
     MaFuckinHolyVUMeterAudioProcessor& audioProcessor;
     const bool standaloneMode;
 
-    juce::Label titleLabel;
-    juce::Label subtitleLabel;
-    juce::Label statusLabel;
-    juce::Label routingLabel;
-    juce::ComboBox sourceModeBox;
-    juce::ComboBox loopbackDeviceBox;
-    juce::TextButton refreshDevicesButton;
-    juce::TextButton connectLoopbackButton;
+    juce::Label titleLabel, subtitleLabel, statusLabel, routingLabel;
+    juce::ComboBox sourceModeBox, loopbackDeviceBox;
+    juce::TextButton refreshDevicesButton, connectLoopbackButton;
 
-    AnalogMeter leftMeter { "L", "VU" };
-    AnalogMeter rightMeter { "R", "VU" };
+    // Top row: true-peak meters. Bottom row: VU meters + true-peak hold needle.
+    AnalogMeter peakLeftMeter  { "L", "TRUE PEAK", false };
+    AnalogMeter peakRightMeter { "R", "TRUE PEAK", false };
+    AnalogMeter vuLeftMeter    { "L", "VU", true };
+    AnalogMeter vuRightMeter   { "R", "VU", true };
 
     WasapiLoopbackCapture loopbackCapture;
     std::vector<WasapiLoopbackCapture::DeviceInfo> loopbackDevices;

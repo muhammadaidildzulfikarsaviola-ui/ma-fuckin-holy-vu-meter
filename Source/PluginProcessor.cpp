@@ -23,6 +23,7 @@ void MaFuckinHolyVUMeterAudioProcessor::prepareToPlay(double newSampleRate, int)
 
     peakMeter.prepare();
     rmsMeter.prepare(sampleRate);
+    vuMeter.prepare(sampleRate);
 }
 
 void MaFuckinHolyVUMeterAudioProcessor::releaseResources()
@@ -49,8 +50,8 @@ void MaFuckinHolyVUMeterAudioProcessor::processBlock(
 
     if (testSignalEnabled.load(std::memory_order_relaxed))
     {
-        // Temporary diagnostic mode. The generated 440 Hz signal is fed only
-        // into the meters. The real audio buffer remains untouched.
+        // Diagnostic signal goes only to the meters; the host buffer is never
+        // altered, keeping both VST3 and standalone processing transparent.
         auto rmsPhase = testSignalPhase;
         peakMeter.processTestSignal(buffer.getNumSamples(), sampleRate, testSignalPhase);
         rmsMeter.processTestSignal(buffer.getNumSamples(), sampleRate, rmsPhase);
@@ -61,18 +62,26 @@ void MaFuckinHolyVUMeterAudioProcessor::processBlock(
         rmsMeter.process(buffer);
     }
 
-    // Meter only. Keep the real audio path untouched so the plugin remains a
-    // transparent passthrough when inserted into a DAW channel.
+    std::array<float, channelCount> rmsLevels {};
+    for (int channel = 0; channel < channelCount; ++channel)
+        rmsLevels[static_cast<size_t>(channel)] = rmsMeter.getRmsLinear(channel);
+
+    vuMeter.process(rmsLevels, buffer.getNumSamples());
 }
 
-float MaFuckinHolyVUMeterAudioProcessor::getPeakDb() const noexcept
+float MaFuckinHolyVUMeterAudioProcessor::getPeakDb(int channel) const noexcept
 {
-    return peakMeter.getPeakDb();
+    return peakMeter.getPeakDb(channel);
 }
 
-float MaFuckinHolyVUMeterAudioProcessor::getRmsDb() const noexcept
+float MaFuckinHolyVUMeterAudioProcessor::getRmsDb(int channel) const noexcept
 {
-    return rmsMeter.getRmsDb();
+    return rmsMeter.getRmsDb(channel);
+}
+
+float MaFuckinHolyVUMeterAudioProcessor::getVuDb(int channel) const noexcept
+{
+    return vuMeter.getVuDb(channel);
 }
 
 void MaFuckinHolyVUMeterAudioProcessor::setTestSignalEnabled(bool enabled) noexcept
@@ -96,61 +105,17 @@ MaFuckinHolyVUMeterAudioProcessor::createEditor()
     return new MaFuckinHolyVUMeterAudioProcessorEditor(*this);
 }
 
-bool MaFuckinHolyVUMeterAudioProcessor::acceptsMidi() const
-{
-    return false;
-}
-
-bool MaFuckinHolyVUMeterAudioProcessor::producesMidi() const
-{
-    return false;
-}
-
-bool MaFuckinHolyVUMeterAudioProcessor::isMidiEffect() const
-{
-    return false;
-}
-
-double MaFuckinHolyVUMeterAudioProcessor::getTailLengthSeconds() const
-{
-    return 0.0;
-}
-
-int MaFuckinHolyVUMeterAudioProcessor::getNumPrograms()
-{
-    return 1;
-}
-
-int MaFuckinHolyVUMeterAudioProcessor::getCurrentProgram()
-{
-    return 0;
-}
-
-void MaFuckinHolyVUMeterAudioProcessor::setCurrentProgram(int)
-{
-}
-
-const juce::String MaFuckinHolyVUMeterAudioProcessor::getProgramName(int)
-{
-    return {};
-}
-
-void MaFuckinHolyVUMeterAudioProcessor::changeProgramName(
-    int,
-    const juce::String&)
-{
-}
-
-void MaFuckinHolyVUMeterAudioProcessor::getStateInformation(
-    juce::MemoryBlock&)
-{
-}
-
-void MaFuckinHolyVUMeterAudioProcessor::setStateInformation(
-    const void*,
-    int)
-{
-}
+bool MaFuckinHolyVUMeterAudioProcessor::acceptsMidi() const { return false; }
+bool MaFuckinHolyVUMeterAudioProcessor::producesMidi() const { return false; }
+bool MaFuckinHolyVUMeterAudioProcessor::isMidiEffect() const { return false; }
+double MaFuckinHolyVUMeterAudioProcessor::getTailLengthSeconds() const { return 0.0; }
+int MaFuckinHolyVUMeterAudioProcessor::getNumPrograms() { return 1; }
+int MaFuckinHolyVUMeterAudioProcessor::getCurrentProgram() { return 0; }
+void MaFuckinHolyVUMeterAudioProcessor::setCurrentProgram(int) {}
+const juce::String MaFuckinHolyVUMeterAudioProcessor::getProgramName(int) { return {}; }
+void MaFuckinHolyVUMeterAudioProcessor::changeProgramName(int, const juce::String&) {}
+void MaFuckinHolyVUMeterAudioProcessor::getStateInformation(juce::MemoryBlock&) {}
+void MaFuckinHolyVUMeterAudioProcessor::setStateInformation(const void*, int) {}
 
 juce::AudioProcessor* JUCE_CALLTYPE createPluginFilter()
 {

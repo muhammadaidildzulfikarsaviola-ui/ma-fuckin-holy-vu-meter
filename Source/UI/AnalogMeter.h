@@ -5,6 +5,9 @@
 class AnalogMeter : public juce::Component
 {
 public:
+    AnalogMeter() = default;
+    ~AnalogMeter() override = default;
+
     void setLevelDb(float db) noexcept;
     float getLevelDb() const noexcept;
 

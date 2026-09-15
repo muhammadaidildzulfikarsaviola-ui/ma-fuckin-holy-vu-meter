@@ -8,6 +8,9 @@ class TruePeakMeter
 public:
     static constexpr int channelCount = 2;
 
+    TruePeakMeter() = default;
+    ~TruePeakMeter() = default;
+
     void prepare(double sampleRate, int maxBlockSize);
     void reset();
 

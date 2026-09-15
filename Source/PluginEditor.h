@@ -19,13 +19,11 @@ private:
     void timerCallback() override;
     void refreshLoopbackDevices();
     void updateMeterSource();
-    void configureMeterHeader(juce::Label& label, const juce::String& text);
 
     MaFuckinHolyVUMeterAudioProcessor& audioProcessor;
     const bool standaloneMode;
 
     juce::Label titleLabel, subtitleLabel, statusLabel, routingLabel;
-    juce::Label peakLeftHeader, peakRightHeader, vuLeftHeader, vuRightHeader;
     juce::ComboBox sourceModeBox, loopbackDeviceBox;
     juce::TextButton refreshDevicesButton, connectLoopbackButton, resetMetersButton;
 

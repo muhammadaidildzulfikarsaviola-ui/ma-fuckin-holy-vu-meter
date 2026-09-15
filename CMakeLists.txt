@@ -42,12 +42,16 @@ target_sources(MaFuckinHolyVUMeter
         Source/UI/DigitalMeter.cpp
         Source/UI/DigitalMeter.h
 
+        Source/Audio/WasapiLoopbackCapture.cpp
+        Source/Audio/WasapiLoopbackCapture.h
+
         Source/Utils/AudioUtils.h
 )
 
 target_include_directories(MaFuckinHolyVUMeter
     PRIVATE
         Source
+        Source/Audio
         Source/DSP
         Source/UI
         Source/Utils
@@ -73,3 +77,7 @@ target_link_libraries(MaFuckinHolyVUMeter
         juce::juce_recommended_lto_flags
         juce::juce_recommended_warning_flags
 )
+
+if (WIN32)
+    target_link_libraries(MaFuckinHolyVUMeter PRIVATE ole32 uuid)
+endif()

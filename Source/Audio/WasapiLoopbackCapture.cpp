@@ -168,7 +168,12 @@ bool WasapiLoopbackCapture::startCapture(const DeviceInfo& device)
         captureActive = false;
     }
 
-    startThread(juce::Thread::Priority::high);
+    if (!startThread(juce::Thread::Priority::high))
+    {
+        setStatus("ERROR: unable to start WASAPI capture thread");
+        return false;
+    }
+
     return true;
 #else
     juce::ignoreUnused(device);

@@ -8,8 +8,8 @@ public:
     AnalogMeter(juce::String channelLabel = "L", juce::String meterLabel = "VU");
     ~AnalogMeter() override = default;
 
-    // Value is expressed relative to the VU scale: 0.0f = 0 VU.
-    void setLevelDb(float db) noexcept;
+    // Both values are expressed relative to the VU scale: 0.0f = 0 VU.
+    void setLevelsDb(float vuDb, float peakDb) noexcept;
 
     void paint(juce::Graphics& g) override;
 
@@ -19,7 +19,8 @@ private:
 
     juce::String channel;
     juce::String meterType;
-    float levelDb = minDb;
+    float vuLevelDb = minDb;
+    float peakLevelDb = minDb;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(AnalogMeter)
 };

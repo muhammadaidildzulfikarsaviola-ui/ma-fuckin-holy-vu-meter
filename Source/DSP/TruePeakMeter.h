@@ -12,6 +12,7 @@ public:
     ~TruePeakMeter() = default;
 
     void prepare(double sampleRate, int maxBlockSize);
+    void setSampleRate(double sampleRate) noexcept;
     void reset();
 
     void process(const juce::AudioBuffer<float>& buffer) noexcept;

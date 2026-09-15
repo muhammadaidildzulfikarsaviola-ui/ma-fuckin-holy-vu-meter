@@ -80,7 +80,6 @@ void MaFuckinHolyVUMeterAudioProcessor::updateVuPeakHold(int numSamples) noexcep
 
     for (int channel = 0; channel < channelCount; ++channel)
     {
-        // The VU panel's red needle is a peak hold of the true-peak signal.
         const auto currentTruePeakDb = truePeakMeter.getCurrentPeakDb(channel);
         auto heldDb = vuPeakHoldDb[static_cast<size_t>(channel)].load(std::memory_order_relaxed);
 
@@ -133,7 +132,7 @@ int MaFuckinHolyVUMeterAudioProcessor::getNumPrograms() { return 1; }
 int MaFuckinHolyVUMeterAudioProcessor::getCurrentProgram() { return 0; }
 void MaFuckinHolyVUMeterAudioProcessor::setCurrentProgram(int) {}
 const juce::String MaFuckinHolyVUMeterAudioProcessor::getProgramName(int) { return {}; }
-void MaFuckinHolyVUMeterAudioProcessor::changeProgramName(int) {}
+void MaFuckinHolyVUMeterAudioProcessor::changeProgramName(int, const juce::String&) {}
 void MaFuckinHolyVUMeterAudioProcessor::getStateInformation(juce::MemoryBlock&) {}
 void MaFuckinHolyVUMeterAudioProcessor::setStateInformation(const void*, int) {}
 

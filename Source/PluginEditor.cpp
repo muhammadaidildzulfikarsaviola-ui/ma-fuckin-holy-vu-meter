@@ -21,7 +21,7 @@ MaFuckinHolyVUMeterAudioProcessorEditor::MaFuckinHolyVUMeterAudioProcessorEditor
     addAndMakeVisible(titleLabel);
 
     subtitleLabel.setText("STEREO STUDIO METER", juce::dontSendNotification);
-    subtitleLabel.setFont(juce::Font(juce::FontOptions{}.withHeight(11.0f).withKerningFactor(0.18f)));
+    subtitleLabel.setFont(juce::Font(juce::FontOptions{}.withHeight(11.0f)));
     subtitleLabel.setColour(juce::Label::textColourId, juce::Colour(0xffa8aaa7));
     addAndMakeVisible(subtitleLabel);
 

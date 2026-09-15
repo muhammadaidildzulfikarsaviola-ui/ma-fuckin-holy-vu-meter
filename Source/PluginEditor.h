@@ -35,16 +35,21 @@ private:
     juce::Label rightReadout;
     juce::Label statusLabel;
     juce::Label routingLabel;
+    juce::Label maximumPeakLabel;
     juce::TextButton analogButton;
     juce::TextButton digitalButton;
     juce::TextButton testSignalButton;
+    juce::TextButton holdPeakButton;
+    juce::TextButton resetPeakButton;
     juce::TextButton refreshDevicesButton;
     juce::TextButton connectLoopbackButton;
     juce::ComboBox sourceModeBox;
     juce::ComboBox loopbackDeviceBox;
 
-    AnalogMeter leftAnalogMeter { "L" };
-    AnalogMeter rightAnalogMeter { "R" };
+    AnalogMeter leftRmsMeter { "L", "RMS" };
+    AnalogMeter rightRmsMeter { "R", "RMS" };
+    AnalogMeter leftPeakMeter { "L", "PEAK" };
+    AnalogMeter rightPeakMeter { "R", "PEAK" };
     DigitalMeter digitalMeter;
 
     WasapiLoopbackCapture loopbackCapture;

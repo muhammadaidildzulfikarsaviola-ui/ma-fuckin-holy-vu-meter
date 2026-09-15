@@ -3,10 +3,13 @@
 #include <JuceHeader.h>
 #include "DSP/PeakMeter.h"
 #include "DSP/RMSMeter.h"
+#include "DSP/VUMeter.h"
 
 class MaFuckinHolyVUMeterAudioProcessor : public juce::AudioProcessor
 {
 public:
+    static constexpr int channelCount = 2;
+
     MaFuckinHolyVUMeterAudioProcessor();
     ~MaFuckinHolyVUMeterAudioProcessor() override;
 
@@ -36,8 +39,9 @@ public:
     void getStateInformation(juce::MemoryBlock& destData) override;
     void setStateInformation(const void* data, int sizeInBytes) override;
 
-    float getPeakDb() const noexcept;
-    float getRmsDb() const noexcept;
+    float getPeakDb(int channel = 0) const noexcept;
+    float getRmsDb(int channel = 0) const noexcept;
+    float getVuDb(int channel = 0) const noexcept;
 
     void setTestSignalEnabled(bool enabled) noexcept;
     bool isTestSignalEnabled() const noexcept;
@@ -45,6 +49,7 @@ public:
 private:
     PeakMeter peakMeter;
     RMSMeter rmsMeter;
+    VUMeter vuMeter;
 
     std::atomic<bool> testSignalEnabled { false };
     double sampleRate = 44100.0;

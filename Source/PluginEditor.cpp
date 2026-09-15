@@ -23,7 +23,7 @@ MaFuckinHolyVUMeterAudioProcessorEditor::MaFuckinHolyVUMeterAudioProcessorEditor
     MaFuckinHolyVUMeterAudioProcessor& p)
     : AudioProcessorEditor(&p),
       audioProcessor(p),
-      standaloneMode(p.getWrapperType() == juce::AudioProcessor::wrapperType_Standalone),
+      standaloneMode(p.wrapperType == juce::AudioProcessor::wrapperType_Standalone),
       loopbackCapture([this](const float* samples, int frames, int channels, double sampleRate)
       {
           audioProcessor.processLoopbackSamples(samples, frames, channels, sampleRate);

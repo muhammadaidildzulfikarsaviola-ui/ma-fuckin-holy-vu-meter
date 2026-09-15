@@ -19,9 +19,6 @@ const juce::String MaFuckinHolyVUMeterAudioProcessor::getName() const
 void MaFuckinHolyVUMeterAudioProcessor::prepareToPlay(double newSampleRate, int)
 {
     sampleRate = newSampleRate > 0.0 ? newSampleRate : 44100.0;
-    testSignalPhase = 0.0;
-
-    peakMeter.prepare();
     rmsMeter.prepare(sampleRate);
     vuMeter.prepare(sampleRate);
 }
@@ -48,23 +45,11 @@ void MaFuckinHolyVUMeterAudioProcessor::processBlock(
 {
     juce::ScopedNoDenormals noDenormals;
 
-    if (testSignalEnabled.load(std::memory_order_relaxed))
-    {
-        // Diagnostic signal is measured only. The real buffer remains a
-        // transparent passthrough in both Standalone and VST3 contexts.
-        auto rmsPhase = testSignalPhase;
-        peakMeter.processTestSignal(buffer.getNumSamples(), sampleRate, testSignalPhase);
-        rmsMeter.processTestSignal(buffer.getNumSamples(), sampleRate, rmsPhase);
-        updateVuMeter(buffer.getNumSamples());
-        return;
-    }
-
     // In standalone loopback mode, native WASAPI capture owns the meter input.
-    // This host callback still leaves the output buffer completely untouched.
+    // The host callback remains a transparent passthrough.
     if (getMeterSource() == MeterSource::wasapiLoopback)
         return;
 
-    peakMeter.process(buffer);
     rmsMeter.process(buffer);
     updateVuMeter(buffer.getNumSamples());
 }
@@ -75,11 +60,9 @@ void MaFuckinHolyVUMeterAudioProcessor::processLoopbackSamples(
 {
     juce::ignoreUnused(sourceSampleRate);
 
-    if (getMeterSource() != MeterSource::wasapiLoopback
-        || testSignalEnabled.load(std::memory_order_relaxed))
+    if (getMeterSource() != MeterSource::wasapiLoopback)
         return;
 
-    peakMeter.processInterleaved(interleavedSamples, numFrames, numChannels);
     rmsMeter.processInterleaved(interleavedSamples, numFrames, numChannels);
     updateVuMeter(numFrames);
 }
@@ -95,21 +78,6 @@ MaFuckinHolyVUMeterAudioProcessor::getMeterSource() const noexcept
     return meterSource.load(std::memory_order_relaxed);
 }
 
-void MaFuckinHolyVUMeterAudioProcessor::setMaximumPeakFrozen(bool shouldFreeze) noexcept
-{
-    peakMeter.setMaximumPeakFrozen(shouldFreeze);
-}
-
-bool MaFuckinHolyVUMeterAudioProcessor::isMaximumPeakFrozen() const noexcept
-{
-    return peakMeter.isMaximumPeakFrozen();
-}
-
-void MaFuckinHolyVUMeterAudioProcessor::resetMaximumPeak() noexcept
-{
-    peakMeter.resetMaximumPeak();
-}
-
 void MaFuckinHolyVUMeterAudioProcessor::updateVuMeter(int numSamples) noexcept
 {
     std::array<float, channelCount> rmsLevels {};
@@ -117,11 +85,6 @@ void MaFuckinHolyVUMeterAudioProcessor::updateVuMeter(int numSamples) noexcept
         rmsLevels[static_cast<size_t>(channel)] = rmsMeter.getRmsLinear(channel);
 
     vuMeter.process(rmsLevels, numSamples);
-}
-
-float MaFuckinHolyVUMeterAudioProcessor::getPeakDb(int channel) const noexcept
-{
-    return peakMeter.getPeakDb(channel);
 }
 
 float MaFuckinHolyVUMeterAudioProcessor::getRmsDb(int channel) const noexcept
@@ -132,21 +95,6 @@ float MaFuckinHolyVUMeterAudioProcessor::getRmsDb(int channel) const noexcept
 float MaFuckinHolyVUMeterAudioProcessor::getVuDb(int channel) const noexcept
 {
     return vuMeter.getVuDb(channel);
-}
-
-float MaFuckinHolyVUMeterAudioProcessor::getMaximumPeakDb(int channel) const noexcept
-{
-    return peakMeter.getMaximumPeakDb(channel);
-}
-
-void MaFuckinHolyVUMeterAudioProcessor::setTestSignalEnabled(bool enabled) noexcept
-{
-    testSignalEnabled.store(enabled, std::memory_order_relaxed);
-}
-
-bool MaFuckinHolyVUMeterAudioProcessor::isTestSignalEnabled() const noexcept
-{
-    return testSignalEnabled.load(std::memory_order_relaxed);
 }
 
 bool MaFuckinHolyVUMeterAudioProcessor::hasEditor() const

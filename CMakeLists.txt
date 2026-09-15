@@ -32,8 +32,6 @@ target_sources(MaFuckinHolyVUMeter
 
         Source/DSP/RMSMeter.cpp
         Source/DSP/RMSMeter.h
-        Source/DSP/PeakMeter.cpp
-        Source/DSP/PeakMeter.h
         Source/DSP/VUMeter.cpp
         Source/DSP/VUMeter.h
 

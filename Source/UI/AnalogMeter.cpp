@@ -49,15 +49,16 @@ void AnalogMeter::paint(juce::Graphics& g)
     g.setColour(juce::Colour(0xffeee8d5));
     g.fillEllipse(face);
 
-    // Red overload zone: 0 to +3 dB.
-    juce::Path overloadArc;
-    overloadArc.addCentredArc(
+    // Main scale arc.
+    juce::Path scaleArc;
+    scaleArc.addCentredArc(
         centre.x, centre.y, radius * 0.91f, radius * 0.91f,
         0.0f, startAngle, endAngle, true);
 
     g.setColour(juce::Colours::darkgrey);
-    g.strokePath(overloadArc, juce::PathStrokeType(7.0f));
+    g.strokePath(scaleArc, juce::PathStrokeType(7.0f));
 
+    // Red overload zone: 0 to +3 dB.
     juce::Path redArc;
     const auto zeroAngle = juce::jmap(0.0f, minDb, maxDb, startAngle, endAngle);
     redArc.addCentredArc(
@@ -66,7 +67,7 @@ void AnalogMeter::paint(juce::Graphics& g)
     g.setColour(juce::Colours::red);
     g.strokePath(redArc, juce::PathStrokeType(7.0f));
 
-    const std::array<float, 6> ticks { -20.0f, -10.0f, -5.0f, 0.0f, 1.0f, 3.0f };
+    constexpr float ticks[] { -20.0f, -10.0f, -5.0f, 0.0f, 1.0f, 3.0f };
 
     for (const auto db : ticks)
     {
@@ -75,28 +76,33 @@ void AnalogMeter::paint(juce::Graphics& g)
         const auto inner = polarPoint(centre, radius * 0.70f, angle);
 
         g.setColour(db >= 0.0f ? juce::Colours::red : juce::Colours::black);
-        g.drawLine({ inner, outer }, db == 0.0f ? 3.0f : 2.0f);
+        g.drawLine(juce::Line<float>(inner, outer), db == 0.0f ? 3.0f : 2.0f);
 
-        auto textPoint = polarPoint(centre, radius * 0.60f, angle);
-        juce::String text = juce::String(db, db == 3.0f || db == 1.0f ? 0 : 0);
+        const auto textPoint = polarPoint(centre, radius * 0.60f, angle);
+        juce::String text = juce::String(db, 0);
         if (db > 0.0f)
             text = "+" + text;
 
         g.setFont(juce::Font(juce::FontOptions{}.withHeight(15.0f).withStyle("Bold")));
         g.setColour(db >= 0.0f ? juce::Colours::red : juce::Colours::black);
-        g.drawText(text,
-                   juce::Rectangle<float>(textPoint.x - 24.0f, textPoint.y - 10.0f, 48.0f, 20.0f).toNearestInt(),
-                   juce::Justification::centred);
+        g.drawText(
+            text,
+            juce::Rectangle<float>(textPoint.x - 24.0f, textPoint.y - 10.0f, 48.0f, 20.0f).toNearestInt(),
+            juce::Justification::centred);
     }
 
-    g.setFont(juce::Font(juce::FontOptions{}.withHeight(16.0f).withStyle("Bold")));
+    g.setFont(juce::Font(juce::FontOptions{}.withHeight(18.0f).withStyle("Bold")));
     g.setColour(juce::Colours::black);
-    g.drawText("VU", face.withY(face.getY() + face.getHeight() * 0.49f).withHeight(30.0f).toNearestInt(),
-               juce::Justification::centred);
+    g.drawText(
+        "VU",
+        face.withY(face.getY() + face.getHeight() * 0.49f).withHeight(30.0f).toNearestInt(),
+        juce::Justification::centred);
 
     g.setFont(juce::Font(juce::FontOptions{}.withHeight(12.0f)));
-    g.drawText("dBFS", face.withY(face.getY() + face.getHeight() * 0.62f).withHeight(20.0f).toNearestInt(),
-               juce::Justification::centred);
+    g.drawText(
+        "dBFS",
+        face.withY(face.getY() + face.getHeight() * 0.62f).withHeight(20.0f).toNearestInt(),
+        juce::Justification::centred);
 
     // Needle.
     const auto needleAngle = juce::jmap(levelDb, minDb, maxDb, startAngle, endAngle);
@@ -108,8 +114,11 @@ void AnalogMeter::paint(juce::Graphics& g)
     needle.lineTo(needleTip);
 
     g.setColour(juce::Colours::red);
-    g.strokePath(needle, juce::PathStrokeType(4.0f, juce::PathStrokeType::curved, juce::PathStrokeType::rounded));
+    g.strokePath(
+        needle,
+        juce::PathStrokeType(4.0f, juce::PathStrokeType::curved, juce::PathStrokeType::rounded));
 
+    g.setColour(juce::Colours::red);
     g.fillEllipse(juce::Rectangle<float>(centre.x - 9.0f, centre.y - 9.0f, 18.0f, 18.0f));
     g.setColour(juce::Colours::black);
     g.fillEllipse(juce::Rectangle<float>(centre.x - 5.0f, centre.y - 5.0f, 10.0f, 10.0f));

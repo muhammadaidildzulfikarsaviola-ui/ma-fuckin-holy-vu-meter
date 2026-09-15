@@ -4,32 +4,40 @@ MaFuckinHolyVUMeterAudioProcessorEditor::
     MaFuckinHolyVUMeterAudioProcessorEditor(
         MaFuckinHolyVUMeterAudioProcessor& p)
     : AudioProcessorEditor(&p),
-      audioProcessor(p),
-      levelBar(displayedLevel)
+      audioProcessor(p)
 {
     titleLabel.setText("MA FUCKIN HOLY VU METER", juce::dontSendNotification);
     titleLabel.setJustificationType(juce::Justification::centred);
     titleLabel.setFont(juce::Font(juce::FontOptions{}.withHeight(24.0f).withStyle("Bold")));
     addAndMakeVisible(titleLabel);
 
-    peakLabel.setText("PEAK: -100.0 dB", juce::dontSendNotification);
+    peakLabel.setText("PEAK: -100.0 dBFS", juce::dontSendNotification);
     peakLabel.setJustificationType(juce::Justification::centred);
-    peakLabel.setFont(juce::Font(juce::FontOptions{}.withHeight(22.0f)));
+    peakLabel.setFont(juce::Font(juce::FontOptions{}.withHeight(18.0f)));
     addAndMakeVisible(peakLabel);
 
-    rmsLabel.setText("RMS: -100.0 dB", juce::dontSendNotification);
+    rmsLabel.setText("RMS: -100.0 dBFS", juce::dontSendNotification);
     rmsLabel.setJustificationType(juce::Justification::centred);
-    rmsLabel.setFont(juce::Font(juce::FontOptions{}.withHeight(22.0f)));
+    rmsLabel.setFont(juce::Font(juce::FontOptions{}.withHeight(18.0f)));
     addAndMakeVisible(rmsLabel);
 
-    statusLabel.setText("AUDIO CALLBACK READY", juce::dontSendNotification);
+    statusLabel.setText("WAITING FOR AUDIO SIGNAL", juce::dontSendNotification);
     statusLabel.setJustificationType(juce::Justification::centred);
+    statusLabel.setFont(juce::Font(juce::FontOptions{}.withHeight(14.0f).withStyle("Bold")));
     addAndMakeVisible(statusLabel);
 
-    levelBar.setPercentageDisplay(false);
-    addAndMakeVisible(levelBar);
+    testSignalButton.setButtonText("TEST SIGNAL: OFF");
+    testSignalButton.onClick = [this]
+    {
+        const auto enabled = !audioProcessor.isTestSignalEnabled();
+        audioProcessor.setTestSignalEnabled(enabled);
+        testSignalButton.setButtonText(enabled ? "TEST SIGNAL: ON" : "TEST SIGNAL: OFF");
+    };
+    addAndMakeVisible(testSignalButton);
 
-    setSize(800, 500);
+    addAndMakeVisible(analogMeter);
+
+    setSize(800, 620);
     startTimerHz(30);
 }
 
@@ -43,21 +51,26 @@ void MaFuckinHolyVUMeterAudioProcessorEditor::paint(juce::Graphics& g)
 {
     g.fillAll(juce::Colours::black);
 
-    auto meterArea = getLocalBounds().reduced(30);
-    meterArea.removeFromTop(150);
-    g.setColour(juce::Colours::darkgrey);
-    g.drawRoundedRectangle(meterArea.toFloat(), 8.0f, 2.0f);
+    auto meterFrame = analogMeter.getBounds().toFloat().expanded(4.0f);
+    g.setColour(juce::Colour(0xff353535));
+    g.drawRoundedRectangle(meterFrame, 18.0f, 2.0f);
 }
 
 void MaFuckinHolyVUMeterAudioProcessorEditor::resized()
 {
-    auto area = getLocalBounds().reduced(30);
+    auto area = getLocalBounds().reduced(24);
 
-    titleLabel.setBounds(area.removeFromTop(60));
-    peakLabel.setBounds(area.removeFromTop(40));
-    rmsLabel.setBounds(area.removeFromTop(40));
-    levelBar.setBounds(area.removeFromTop(45).reduced(20, 5));
-    statusLabel.setBounds(area.removeFromBottom(35));
+    titleLabel.setBounds(area.removeFromTop(48));
+
+    auto readoutArea = area.removeFromTop(34);
+    peakLabel.setBounds(readoutArea.removeFromLeft(readoutArea.getWidth() / 2));
+    rmsLabel.setBounds(readoutArea);
+
+    auto bottom = area.removeFromBottom(42);
+    testSignalButton.setBounds(bottom.removeFromLeft(180).reduced(4));
+    statusLabel.setBounds(bottom.reduced(4));
+
+    analogMeter.setBounds(area.reduced(8, 4));
 }
 
 void MaFuckinHolyVUMeterAudioProcessorEditor::timerCallback()
@@ -66,20 +79,30 @@ void MaFuckinHolyVUMeterAudioProcessorEditor::timerCallback()
     const auto rmsDb = audioProcessor.getRmsDb();
 
     peakLabel.setText(
-        "PEAK: " + juce::String(peakDb, 1) + " dB",
+        "PEAK: " + juce::String(peakDb, 1) + " dBFS",
         juce::dontSendNotification);
 
     rmsLabel.setText(
-        "RMS: " + juce::String(rmsDb, 1) + " dB",
+        "RMS: " + juce::String(rmsDb, 1) + " dBFS",
         juce::dontSendNotification);
 
-    const auto normalized = juce::jlimit(0.0f, 1.0f, juce::jmap(peakDb, -60.0f, 0.0f, 0.0f, 1.0f));
-    displayedLevel = normalized;
+    // Temporary visual mapping: RMS dBFS drives the analog needle.
+    // Proper VU calibration and ballistics come in the meter-engine phase.
+    analogMeter.setLevelDb(rmsDb);
 
-    // ProgressBar reads the value through the reference passed to its
-    // constructor, so updating displayedLevel is sufficient.
+    const auto testMode = audioProcessor.isTestSignalEnabled();
+    const auto signalDetected = peakDb > -60.0f;
 
-    statusLabel.setText(
-        peakDb > -60.0f ? "AUDIO SIGNAL DETECTED" : "WAITING FOR AUDIO SIGNAL",
-        juce::dontSendNotification);
+    if (testMode)
+    {
+        statusLabel.setText(
+            "TEST SIGNAL ACTIVE • EXPECT ~ -12 dB PEAK / -15 dB RMS",
+            juce::dontSendNotification);
+    }
+    else
+    {
+        statusLabel.setText(
+            signalDetected ? "AUDIO SIGNAL DETECTED" : "WAITING FOR AUDIO SIGNAL",
+            juce::dontSendNotification);
+    }
 }

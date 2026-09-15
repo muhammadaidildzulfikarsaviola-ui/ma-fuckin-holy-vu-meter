@@ -3,8 +3,10 @@
 namespace
 {
 constexpr float pi = juce::MathConstants<float>::pi;
-constexpr float startAngle = 225.0f * pi / 180.0f;
-constexpr float endAngle = -45.0f * pi / 180.0f;
+// Screen coordinates use +Y downward, so increasing angles move clockwise.
+constexpr float lowerLeftAngle = 135.0f * pi / 180.0f;  // -20 dB
+constexpr float zeroVuAngle = 270.0f * pi / 180.0f;     // 0 VU
+constexpr float upperRightAngle = 315.0f * pi / 180.0f; // +3 dB
 
 juce::Point<float> polarPoint(juce::Point<float> centre, float radius, float angle)
 {
@@ -13,7 +15,14 @@ juce::Point<float> polarPoint(juce::Point<float> centre, float radius, float ang
 
 float dbToAngle(float db)
 {
-    return juce::jmap(juce::jlimit(-20.0f, 3.0f, db), -20.0f, 3.0f, startAngle, endAngle);
+    const auto clampedDb = juce::jlimit(-20.0f, 3.0f, db);
+
+    // Deliberately piecewise: 0 VU is a calibration landmark at the top
+    // centre, not the midpoint of the -20 dB to +3 dB display range.
+    if (clampedDb <= 0.0f)
+        return juce::jmap(clampedDb, -20.0f, 0.0f, lowerLeftAngle, zeroVuAngle);
+
+    return juce::jmap(clampedDb, 0.0f, 3.0f, zeroVuAngle, upperRightAngle);
 }
 }
 

@@ -49,7 +49,11 @@ void MaFuckinHolyVUMeterAudioProcessor::processLoopbackSamples(
         return;
 
     if (sourceSampleRate > 0.0)
+    {
         sampleRate = sourceSampleRate;
+        vuMeter.prepare(sampleRate);
+        truePeakMeter.prepare(sampleRate, numFrames);
+    }
 
     vuMeter.processInterleaved(interleavedSamples, numFrames, numChannels);
     truePeakMeter.processInterleaved(interleavedSamples, numFrames, numChannels);
@@ -77,14 +81,14 @@ void MaFuckinHolyVUMeterAudioProcessor::updateVuPeakHold(int numSamples) noexcep
 
     for (int channel = 0; channel < channelCount; ++channel)
     {
-        // The VU peak-hold is based on the actual true peak, but displayed on
-        // the VU scale after the same -18 dBFS = 0 VU alignment.
-        const auto currentPeakDb = truePeakMeter.getCurrentPeakDb(channel);
+        // This hold belongs to the VU meter, so it follows the VU envelope
+        // rather than the independent true-peak detector.
+        const auto currentVuDb = getVuDb(channel);
         auto heldDb = vuPeakHoldDb[static_cast<size_t>(channel)].load(std::memory_order_relaxed);
 
-        if (currentPeakDb > heldDb)
+        if (currentVuDb > heldDb)
         {
-            heldDb = currentPeakDb;
+            heldDb = currentVuDb;
             vuPeakHoldElapsedSeconds[static_cast<size_t>(channel)] = 0.0f;
         }
         else

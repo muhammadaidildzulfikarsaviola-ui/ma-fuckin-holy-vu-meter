@@ -48,10 +48,11 @@ void MaFuckinHolyVUMeterAudioProcessor::processLoopbackSamples(
     if (getMeterSource() != MeterSource::wasapiLoopback)
         return;
 
-    // WASAPI gives us the source rate. Re-prepare only when it actually changes,
-    // never once per callback, otherwise the meter would continuously reset.
     if (sourceSampleRate > 0.0 && std::abs(sampleRate - sourceSampleRate) > 0.5)
+    {
         sampleRate = sourceSampleRate;
+        truePeakMeter.setSampleRate(sampleRate);
+    }
 
     vuMeter.processInterleaved(interleavedSamples, numFrames, numChannels);
     truePeakMeter.processInterleaved(interleavedSamples, numFrames, numChannels);
@@ -79,7 +80,7 @@ void MaFuckinHolyVUMeterAudioProcessor::updateVuPeakHold(int numSamples) noexcep
 
     for (int channel = 0; channel < channelCount; ++channel)
     {
-        // VU peak hold follows the VU envelope itself, not the true-peak meter.
+        // VU peak hold follows the VU envelope itself, independently of true peak.
         const auto currentVuDb = getVuDb(channel);
         auto heldDb = vuPeakHoldDb[static_cast<size_t>(channel)].load(std::memory_order_relaxed);
 

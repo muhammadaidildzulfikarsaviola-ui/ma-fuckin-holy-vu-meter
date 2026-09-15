@@ -43,12 +43,18 @@ public:
 
     float getRmsDb(int channel = 0) const noexcept;
     float getVuDb(int channel = 0) const noexcept;
+    float getPeakDb(int channel = 0) const noexcept;
 
 private:
     void updateVuMeter(int numSamples) noexcept;
+    void updatePeakMeter(const juce::AudioBuffer<float>& buffer) noexcept;
+    void updatePeakMeterInterleaved(const float* interleavedSamples, int numFrames, int numChannels) noexcept;
 
     RMSMeter rmsMeter;
     VUMeter vuMeter;
+
+    std::array<std::atomic<float>, channelCount> peakHoldDb { -100.0f, -100.0f };
+    std::array<float, channelCount> peakHoldElapsedSeconds { 0.0f, 0.0f };
 
     std::atomic<MeterSource> meterSource { MeterSource::normalInput };
     double sampleRate = 44100.0;

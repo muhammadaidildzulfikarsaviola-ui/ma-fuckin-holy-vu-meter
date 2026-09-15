@@ -7,11 +7,12 @@ class AnalogMeter : public juce::Component
 public:
     AnalogMeter(juce::String channelLabel = "L",
                 juce::String meterLabel = "VU",
-                bool showPeakHoldNeedle = true);
+                bool showSecondaryNeedle = true,
+                bool secondaryIsMax = false);
     ~AnalogMeter() override = default;
 
-    // Values are expressed relative to the displayed scale: 0.0f = 0 on the face.
-    void setLevelsDb(float mainDb, float peakHoldDb) noexcept;
+    // Main and secondary values are expressed in the displayed dB scale.
+    void setLevelsDb(float mainDb, float secondaryDb) noexcept;
 
     void paint(juce::Graphics&) override;
 
@@ -21,9 +22,10 @@ private:
 
     juce::String channel;
     juce::String meterType;
-    bool showPeakHold = true;
+    bool showSecondary = true;
+    bool secondaryIsMax = false;
     float mainLevelDb = minDb;
-    float peakHoldLevelDb = minDb;
+    float secondaryLevelDb = minDb;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(AnalogMeter)
 };

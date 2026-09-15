@@ -8,11 +8,11 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 add_subdirectory(JUCE)
 
 juce_add_plugin(MaFuckinHolyVUMeter
-    COMPANY_NAME "Aidil Audio"
-    PRODUCT_NAME "MA Fuckin Holy VU Meter"
-    BUNDLE_ID com.aidil.audio.mafuckinholyvumeter
+    COMPANY_NAME "Wadidaw"
+    PRODUCT_NAME "PEjU Meter"
+    BUNDLE_ID com.aidil.audio.pejumeter
     PLUGIN_MANUFACTURER_CODE Aidl
-    PLUGIN_CODE MFVM
+    PLUGIN_CODE PEjU
     FORMATS VST3 Standalone
     IS_SYNTH FALSE
     NEEDS_MIDI_INPUT FALSE

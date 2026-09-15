@@ -19,6 +19,8 @@ private:
     void timerCallback() override;
     void refreshLoopbackDevices();
     void updateMeterSource();
+    
+    int debugElapsedSeconds = 0;
 
     MaFuckinHolyVUMeterAudioProcessor& audioProcessor;
     const bool standaloneMode;

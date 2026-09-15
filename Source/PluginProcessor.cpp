@@ -10,7 +10,10 @@ MaFuckinHolyVUMeterAudioProcessor::MaFuckinHolyVUMeterAudioProcessor()
 
 MaFuckinHolyVUMeterAudioProcessor::~MaFuckinHolyVUMeterAudioProcessor() = default;
 
-const juce::String MaFuckinHolyVUMeterAudioProcessor::getName() const { return JucePlugin_Name; }
+const juce::String MaFuckinHolyVUMeterAudioProcessor::getName() const
+{
+    return "PEjU Meter";
+}
 
 void MaFuckinHolyVUMeterAudioProcessor::prepareToPlay(double newSampleRate, int samplesPerBlock)
 {

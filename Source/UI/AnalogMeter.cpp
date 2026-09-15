@@ -90,11 +90,21 @@ void AnalogMeter::paint(juce::Graphics& g)
     // Internal title. Nothing is placed outside the meter face.
     g.setColour(juce::Colour(0xff25231e));
     g.setFont(juce::Font(juce::FontOptions{}.withHeight(9.0f).withStyle("Bold")));
-    g.drawText(meterType, face.getX() + 10, face.getY() + 7, 82, 12,
-               juce::Justification::left);
+    g.drawText(
+        meterType,
+        static_cast<int>(face.getX() + 10.0f),
+        static_cast<int>(face.getY() + 7.0f),
+        82,
+        12,
+        juce::Justification::left);
     g.setFont(juce::Font(juce::FontOptions{}.withHeight(8.0f).withStyle("Bold")));
-    g.drawText(channel, face.getRight() - 24, face.getY() + 7, 16, 12,
-               juce::Justification::right);
+    g.drawText(
+        channel,
+        static_cast<int>(face.getRight() - 24.0f),
+        static_cast<int>(face.getY() + 7.0f),
+        16,
+        12,
+        juce::Justification::right);
 
     // Tiny legend, kept away from the scale and needle path.
     g.setFont(juce::Font(juce::FontOptions{}.withHeight(6.5f).withStyle("Bold")));

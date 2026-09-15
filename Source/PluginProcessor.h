@@ -1,6 +1,8 @@
 #pragma once
 
 #include <JuceHeader.h>
+#include "DSP/PeakMeter.h"
+#include "DSP/RMSMeter.h"
 
 class MaFuckinHolyVUMeterAudioProcessor : public juce::AudioProcessor
 {
@@ -34,7 +36,13 @@ public:
     void getStateInformation(juce::MemoryBlock& destData) override;
     void setStateInformation(const void* data, int sizeInBytes) override;
 
+    float getPeakDb() const noexcept;
+    float getRmsDb() const noexcept;
+
 private:
+    PeakMeter peakMeter;
+    RMSMeter rmsMeter;
+
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(MaFuckinHolyVUMeterAudioProcessor)
 };
 

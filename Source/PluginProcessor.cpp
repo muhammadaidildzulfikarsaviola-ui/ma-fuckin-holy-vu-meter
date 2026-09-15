@@ -51,9 +51,9 @@ void MaFuckinHolyVUMeterAudioProcessor::processBlock(
     {
         // Temporary diagnostic mode. The generated 440 Hz signal is fed only
         // into the meters. The real audio buffer remains untouched.
-        const auto rmsPhase = testSignalPhase;
+        auto rmsPhase = testSignalPhase;
         peakMeter.processTestSignal(buffer.getNumSamples(), sampleRate, testSignalPhase);
-        rmsMeter.processTestSignal(buffer.getNumSamples(), sampleRate, const_cast<double&>(rmsPhase));
+        rmsMeter.processTestSignal(buffer.getNumSamples(), sampleRate, rmsPhase);
     }
     else
     {

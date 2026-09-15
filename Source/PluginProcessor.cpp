@@ -27,10 +27,13 @@ void MaFuckinHolyVUMeterAudioProcessor::releaseResources()
 bool MaFuckinHolyVUMeterAudioProcessor::isBusesLayoutSupported(
     const BusesLayout& layouts) const
 {
-    if (layouts.getMainOutputChannelSet() != juce::AudioChannelSet::stereo())
+    const auto input = layouts.getMainInputChannelSet();
+    const auto output = layouts.getMainOutputChannelSet();
+
+    if (output != juce::AudioChannelSet::stereo())
         return false;
 
-    return layouts.getMainInputChannelSet() == juce::AudioChannelSet::stereo();
+    return input == juce::AudioChannelSet::stereo();
 }
 
 void MaFuckinHolyVUMeterAudioProcessor::processBlock(
@@ -40,7 +43,7 @@ void MaFuckinHolyVUMeterAudioProcessor::processBlock(
     juce::ScopedNoDenormals noDenormals;
 
     // Temporary passthrough.
-    // DSP meter akan masuk di tahap berikutnya.
+    // Meter DSP will be connected here in the next milestone.
     for (int channel = 0; channel < buffer.getNumChannels(); ++channel)
     {
         auto* data = buffer.getWritePointer(channel);

@@ -37,22 +37,24 @@ juce::Point<float> polarPoint(juce::Point<float> centre, float radius, float ang
 
 AnalogMeter::AnalogMeter(juce::String channelLabel,
                          juce::String meterLabel,
-                         bool showPeakHoldNeedle)
+                         bool showSecondaryNeedle,
+                         bool secondaryIsMaxValue)
     : channel(std::move(channelLabel)),
       meterType(std::move(meterLabel)),
-      showPeakHold(showPeakHoldNeedle)
+      showSecondary(showSecondaryNeedle),
+      secondaryIsMax(secondaryIsMaxValue)
 {
 }
 
-void AnalogMeter::setLevelsDb(float mainDb, float peakHoldDb) noexcept
+void AnalogMeter::setLevelsDb(float mainDb, float secondaryDb) noexcept
 {
     const auto newMain = juce::jlimit(minDb, maxDb, mainDb);
-    const auto newPeak = juce::jlimit(minDb, maxDb, peakHoldDb);
+    const auto newSecondary = juce::jlimit(minDb, maxDb, secondaryDb);
     if (std::abs(newMain - mainLevelDb) > 0.001f
-        || std::abs(newPeak - peakHoldLevelDb) > 0.001f)
+        || std::abs(newSecondary - secondaryLevelDb) > 0.001f)
     {
         mainLevelDb = newMain;
-        peakHoldLevelDb = newPeak;
+        secondaryLevelDb = newSecondary;
         repaint();
     }
 }
@@ -77,6 +79,7 @@ void AnalogMeter::paint(juce::Graphics& g)
                    screw.getRight() - 2.5f, screw.getCentreY(), 1.0f);
     }
 
+    // Keep the face clean. Meter/channel names are now rendered in the panel header.
     auto inner = bounds.reduced(14.0f, 12.0f);
     const auto centre = juce::Point<float>(inner.getCentreX(), inner.getBottom() + 2.0f);
     const auto radius = juce::jmin(inner.getWidth() * 0.49f, inner.getHeight() * 1.02f);
@@ -112,7 +115,7 @@ void AnalogMeter::paint(juce::Graphics& g)
         g.drawText(text, labelBounds.toNearestInt(), juce::Justification::centred);
     }
 
-    // Program percentage scale below the -20..0 VU range.
+    // Program percentage scale below the -20..0 range.
     const float percentageDb[] = { -20.0f, -15.0f, -10.0f, -5.0f, 0.0f };
     const int percentageValues[] = { 20, 40, 60, 80, 100 };
     g.setFont(juce::Font(juce::FontOptions{}.withHeight(9.0f)));
@@ -124,32 +127,21 @@ void AnalogMeter::paint(juce::Graphics& g)
                    labelBounds.toNearestInt(), juce::Justification::centred);
     }
 
-    g.setFont(juce::Font(juce::FontOptions{}.withHeight(17.0f).withStyle("Bold")));
-    g.drawText(meterType,
-               face.withY(face.getY() + face.getHeight() * 0.39f).withHeight(24.0f).toNearestInt(),
-               juce::Justification::centred);
-
-    g.setFont(juce::Font(juce::FontOptions{}.withHeight(13.0f).withStyle("Bold")));
-    g.drawText(channel,
-               face.withX(face.getX() + 14.0f).withY(face.getY() + 12.0f)
-                   .withWidth(70.0f).withHeight(20.0f).toNearestInt(),
-               juce::Justification::centred);
-
-    // Main needle. Top panels use this as the true-peak needle.
+    // Main needle: VU on the bottom row, current true peak on the top row.
     const auto mainAngle = dbToAngle(mainLevelDb);
     const auto mainTip = polarPoint(centre, radius * 0.70f, mainAngle);
     const auto mainBase = polarPoint(centre, radius * 0.055f, mainAngle + pi);
-    g.setColour(showPeakHold ? juce::Colour(0xff171817) : juce::Colour(0xffb72b1c));
+    g.setColour(secondaryIsMax ? juce::Colour(0xffc52b20) : juce::Colour(0xff171817));
     g.drawLine(mainBase.x, mainBase.y, mainTip.x, mainTip.y, 2.2f);
 
-    // Bottom VU panels get a second red peak-hold needle.
-    if (showPeakHold)
+    // Secondary needle: true-peak MAX on top, VU peak-hold on bottom.
+    if (showSecondary)
     {
-        const auto peakAngle = dbToAngle(peakHoldLevelDb);
-        const auto peakTip = polarPoint(centre, radius * 0.73f, peakAngle);
-        const auto peakBase = polarPoint(centre, radius * 0.055f, peakAngle + pi);
+        const auto secondaryAngle = dbToAngle(secondaryLevelDb);
+        const auto secondaryTip = polarPoint(centre, radius * 0.73f, secondaryAngle);
+        const auto secondaryBase = polarPoint(centre, radius * 0.055f, secondaryAngle + pi);
         g.setColour(juce::Colour(0xffb72b1c));
-        g.drawLine(peakBase.x, peakBase.y, peakTip.x, peakTip.y, 2.2f);
+        g.drawLine(secondaryBase.x, secondaryBase.y, secondaryTip.x, secondaryTip.y, 2.0f);
     }
 
     g.setColour(juce::Colour(0xff171817));

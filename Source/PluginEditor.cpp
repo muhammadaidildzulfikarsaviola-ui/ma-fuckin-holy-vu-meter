@@ -48,6 +48,15 @@ MaFuckinHolyVUMeterAudioProcessorEditor::MaFuckinHolyVUMeterAudioProcessorEditor
     routingLabel.setColour(juce::Label::textColourId, juce::Colour(0xffa8aaa7));
     addAndMakeVisible(routingLabel);
 
+    configureMeterHeader(peakLeftHeader, "TRUE PEAK  L   |   CURRENT / MAX");
+    configureMeterHeader(peakRightHeader, "TRUE PEAK  R   |   CURRENT / MAX");
+    configureMeterHeader(vuLeftHeader, "VU  L   |   VU / PEAK HOLD");
+    configureMeterHeader(vuRightHeader, "VU  R   |   VU / PEAK HOLD");
+    addAndMakeVisible(peakLeftHeader);
+    addAndMakeVisible(peakRightHeader);
+    addAndMakeVisible(vuLeftHeader);
+    addAndMakeVisible(vuRightHeader);
+
     refreshDevicesButton.setButtonText("REFRESH");
     connectLoopbackButton.setButtonText("CONNECT");
     configureButton(refreshDevicesButton);
@@ -90,6 +99,15 @@ MaFuckinHolyVUMeterAudioProcessorEditor::MaFuckinHolyVUMeterAudioProcessorEditor
     setResizable(false, false);
     setSize(980, standaloneMode ? 850 : 760);
     startTimerHz(30);
+}
+
+void MaFuckinHolyVUMeterAudioProcessorEditor::configureMeterHeader(juce::Label& label,
+                                                                    const juce::String& text)
+{
+    label.setText(text, juce::dontSendNotification);
+    label.setFont(juce::Font(juce::FontOptions{}.withHeight(10.0f).withStyle("Bold")));
+    label.setColour(juce::Label::textColourId, juce::Colour(0xff9fa5a2));
+    label.setJustificationType(juce::Justification::centredLeft);
 }
 
 MaFuckinHolyVUMeterAudioProcessorEditor::~MaFuckinHolyVUMeterAudioProcessorEditor()
@@ -160,7 +178,6 @@ void MaFuckinHolyVUMeterAudioProcessorEditor::paint(juce::Graphics& g)
     const auto separatorY = static_cast<float>(getHeight() / 2 + 18);
     g.setColour(juce::Colour(0xff3d4446));
     g.drawLine(40.0f, separatorY, static_cast<float>(getWidth() - 40), separatorY, 1.0f);
-
     g.setColour(juce::Colour(0xff5a5e5c));
     g.drawLine(28.0f, getHeight() - 44.0f,
                static_cast<float>(getWidth() - 28), getHeight() - 44.0f, 1.0f);
@@ -192,28 +209,37 @@ void MaFuckinHolyVUMeterAudioProcessorEditor::resized()
     auto bottomRow = meterArea;
 
     auto peakLeftArea = topRow.removeFromLeft(topRow.getWidth() / 2);
-    peakLeftMeter.setBounds(peakLeftArea.reduced(5));
-    peakRightMeter.setBounds(topRow.reduced(5));
-
+    auto peakRightArea = topRow;
     auto vuLeftArea = bottomRow.removeFromLeft(bottomRow.getWidth() / 2);
+    auto vuRightArea = bottomRow;
+
+    peakLeftHeader.setBounds(peakLeftArea.removeFromTop(22).reduced(7, 2));
+    peakLeftMeter.setBounds(peakLeftArea.reduced(5));
+    peakRightHeader.setBounds(peakRightArea.removeFromTop(22).reduced(7, 2));
+    peakRightMeter.setBounds(peakRightArea.reduced(5));
+    vuLeftHeader.setBounds(vuLeftArea.removeFromTop(22).reduced(7, 2));
     vuLeftMeter.setBounds(vuLeftArea.reduced(5));
-    vuRightMeter.setBounds(bottomRow.reduced(5));
+    vuRightHeader.setBounds(vuRightArea.removeFromTop(22).reduced(7, 2));
+    vuRightMeter.setBounds(vuRightArea.reduced(5));
 }
 
 void MaFuckinHolyVUMeterAudioProcessorEditor::timerCallback()
 {
     constexpr float vuCalibrationDb = 18.0f; // -18 dBFS = 0 VU
 
-    const auto leftTruePeak = audioProcessor.getTruePeakDb(0);
-    const auto rightTruePeak = audioProcessor.getTruePeakDb(1);
+    // True peak is already in dBFS. Do not add VU calibration to it.
+    const auto leftTruePeak = audioProcessor.getTruePeakCurrentDb(0);
+    const auto rightTruePeak = audioProcessor.getTruePeakCurrentDb(1);
+    const auto leftTruePeakMax = audioProcessor.getTruePeakMaxDb(0);
+    const auto rightTruePeakMax = audioProcessor.getTruePeakMaxDb(1);
+
     const auto leftVu = audioProcessor.getVuDb(0) + vuCalibrationDb;
     const auto rightVu = audioProcessor.getVuDb(1) + vuCalibrationDb;
     const auto leftHold = audioProcessor.getVuPeakHoldDb(0) + vuCalibrationDb;
     const auto rightHold = audioProcessor.getVuPeakHoldDb(1) + vuCalibrationDb;
 
-    // Top: actual dBFS true peak. Bottom: VU scale with a separate peak-hold needle.
-    peakLeftMeter.setLevelsDb(leftTruePeak, leftTruePeak);
-    peakRightMeter.setLevelsDb(rightTruePeak, rightTruePeak);
+    peakLeftMeter.setLevelsDb(leftTruePeak, leftTruePeakMax);
+    peakRightMeter.setLevelsDb(rightTruePeak, rightTruePeakMax);
     vuLeftMeter.setLevelsDb(leftVu, leftHold);
     vuRightMeter.setLevelsDb(rightVu, rightHold);
 

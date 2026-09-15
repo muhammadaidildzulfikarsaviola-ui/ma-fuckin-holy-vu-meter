@@ -20,6 +20,31 @@ void PeakMeter::process(const juce::AudioBuffer<float>& buffer)
     peakLinear.store(blockPeak, std::memory_order_relaxed);
 }
 
+void PeakMeter::processTestSignal(int numSamples, double sampleRate, double& phase)
+{
+    if (numSamples <= 0 || sampleRate <= 0.0)
+        return;
+
+    constexpr double frequency = 440.0;
+    constexpr float amplitude = 0.25118864f; // -12 dBFS peak
+    constexpr double twoPi = juce::MathConstants<double>::twoPi;
+    const auto phaseStep = twoPi * frequency / sampleRate;
+
+    float blockPeak = 0.0f;
+
+    for (int sample = 0; sample < numSamples; ++sample)
+    {
+        const auto value = amplitude * static_cast<float>(std::sin(phase));
+        blockPeak = juce::jmax(blockPeak, std::abs(value));
+        phase += phaseStep;
+
+        if (phase >= twoPi)
+            phase -= twoPi;
+    }
+
+    peakLinear.store(blockPeak, std::memory_order_relaxed);
+}
+
 float PeakMeter::getPeakDb() const noexcept
 {
     return juce::Decibels::gainToDecibels(getPeakLinear(), -100.0f);

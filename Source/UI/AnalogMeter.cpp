@@ -59,15 +59,15 @@ void AnalogMeter::setLevelsDb(float mainDb, float secondaryDb) noexcept
 
 void AnalogMeter::paint(juce::Graphics& g)
 {
-    auto bounds = getLocalBounds().toFloat().reduced(2.0f);
+    auto bounds = getLocalBounds().toFloat().reduced(1.0f);
 
-    // Compact dark metal bezel.
+    // Tight dark metal bezel so the illuminated face uses almost the entire bay.
     g.setColour(juce::Colour(0xff111314));
     g.fillRoundedRectangle(bounds, 6.0f);
     g.setColour(juce::Colour(0xff5b5952));
     g.drawRoundedRectangle(bounds, 6.0f, 1.0f);
 
-    auto face = bounds.reduced(6.0f, 5.0f);
+    auto face = bounds.reduced(3.0f, 3.0f);
 
     // Warm illuminated cream, with a restrained central lamp glow.
     juce::ColourGradient lamp(juce::Colour(0xfffff7dd), face.getCentreX(), face.getY(),
@@ -82,9 +82,10 @@ void AnalogMeter::paint(juce::Graphics& g)
     g.saveState();
     g.reduceClipRegion(face.toNearestInt());
 
-    // Low pivot gives the classic moving-coil meter silhouette.
+    // Low pivot gives the classic moving-coil meter silhouette. The larger radius
+    // makes the scale fill the panel like a compact hardware meter.
     const auto centre = juce::Point<float>(face.getCentreX(), face.getBottom() + 1.0f);
-    const auto radius = juce::jmin(face.getWidth() * 0.43f, face.getHeight() * 1.06f);
+    const auto radius = juce::jmin(face.getWidth() * 0.49f, face.getHeight() * 1.08f);
 
     // Internal title. Nothing is placed outside the meter face.
     g.setColour(juce::Colour(0xff25231e));

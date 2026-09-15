@@ -69,6 +69,10 @@ void AnalogMeter::paint(juce::Graphics& g)
     g.setColour(juce::Colour(0xff8c806c));
     g.drawEllipse(face, 1.2f);
 
+    // Keep all scale and needle drawing inside the physical dial face.
+    g.saveState();
+    g.reduceClipRegion(face.toNearestInt());
+
     for (int tick = 0; tick <= 46; ++tick)
     {
         const auto db = juce::jmap(static_cast<float>(tick), 0.0f, 46.0f, minDb, maxDb);
@@ -116,4 +120,5 @@ void AnalogMeter::paint(juce::Graphics& g)
     g.fillEllipse(juce::Rectangle<float>(centre.x - 9.0f, centre.y - 9.0f, 18.0f, 18.0f));
     g.setColour(juce::Colour(0xffa9a69d));
     g.fillEllipse(juce::Rectangle<float>(centre.x - 4.0f, centre.y - 4.0f, 8.0f, 8.0f));
+    g.restoreState();
 }

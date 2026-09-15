@@ -7,17 +7,19 @@ void PeakMeter::prepare()
 
 void PeakMeter::reset()
 {
-    peakLinear.store(0.0f, std::memory_order_relaxed);
+    for (auto& peak : peakLinear)
+        peak.store(0.0f, std::memory_order_relaxed);
 }
 
 void PeakMeter::process(const juce::AudioBuffer<float>& buffer)
 {
-    float blockPeak = 0.0f;
-
-    for (int channel = 0; channel < buffer.getNumChannels(); ++channel)
-        blockPeak = juce::jmax(blockPeak, buffer.getMagnitude(channel, 0, buffer.getNumSamples()));
-
-    peakLinear.store(blockPeak, std::memory_order_relaxed);
+    for (int channel = 0; channel < channelCount; ++channel)
+    {
+        const auto value = channel < buffer.getNumChannels()
+            ? buffer.getMagnitude(channel, 0, buffer.getNumSamples())
+            : 0.0f;
+        peakLinear[static_cast<size_t>(channel)].store(value, std::memory_order_relaxed);
+    }
 }
 
 void PeakMeter::processTestSignal(int numSamples, double sampleRate, double& phase)
@@ -42,15 +44,17 @@ void PeakMeter::processTestSignal(int numSamples, double sampleRate, double& pha
             phase -= twoPi;
     }
 
-    peakLinear.store(blockPeak, std::memory_order_relaxed);
+    for (auto& peak : peakLinear)
+        peak.store(blockPeak, std::memory_order_relaxed);
 }
 
-float PeakMeter::getPeakDb() const noexcept
+float PeakMeter::getPeakDb(int channel) const noexcept
 {
-    return juce::Decibels::gainToDecibels(getPeakLinear(), -100.0f);
+    return juce::Decibels::gainToDecibels(getPeakLinear(channel), -100.0f);
 }
 
-float PeakMeter::getPeakLinear() const noexcept
+float PeakMeter::getPeakLinear(int channel) const noexcept
 {
-    return peakLinear.load(std::memory_order_relaxed);
+    const auto index = juce::jlimit(0, channelCount - 1, channel);
+    return peakLinear[static_cast<size_t>(index)].load(std::memory_order_relaxed);
 }

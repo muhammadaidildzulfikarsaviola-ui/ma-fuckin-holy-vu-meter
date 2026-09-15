@@ -111,20 +111,42 @@ void AnalogMeter::paint(juce::Graphics& g)
     if (secondaryIsMax)
     {
         g.setColour(juce::Colour(0xffb52d22));
-        g.drawText("CURRENT", face.getCentreX() - 55, face.getY() + 8, 38, 10,
-                   juce::Justification::centred);
+        g.drawText(
+            "CURRENT",
+            static_cast<int>(face.getCentreX() - 55.0f),
+            static_cast<int>(face.getY() + 8.0f),
+            38,
+            10,
+            juce::Justification::centred);
+
         g.setColour(juce::Colour(0xff25231e));
-        g.drawText("MAX", face.getCentreX() + 18, face.getY() + 8, 25, 10,
-                   juce::Justification::centred);
+        g.drawText(
+            "MAX",
+            static_cast<int>(face.getCentreX() + 18.0f),
+            static_cast<int>(face.getY() + 8.0f),
+            25,
+            10,
+            juce::Justification::centred);
     }
     else
     {
         g.setColour(juce::Colour(0xff25231e));
-        g.drawText("VU", face.getCentreX() - 38, face.getY() + 8, 22, 10,
-                   juce::Justification::centred);
+        g.drawText(
+            "VU",
+            static_cast<int>(face.getCentreX() - 38.0f),
+            static_cast<int>(face.getY() + 8.0f),
+            22,
+            10,
+            juce::Justification::centred);
+
         g.setColour(juce::Colour(0xffb52d22));
-        g.drawText("HOLD", face.getCentreX() + 12, face.getY() + 8, 28, 10,
-                   juce::Justification::centred);
+        g.drawText(
+            "HOLD",
+            static_cast<int>(face.getCentreX() + 12.0f),
+            static_cast<int>(face.getY() + 8.0f),
+            28,
+            10,
+            juce::Justification::centred);
     }
 
     // One clean tick per dB. Selected dB points get longer ticks.

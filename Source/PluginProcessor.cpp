@@ -95,6 +95,21 @@ MaFuckinHolyVUMeterAudioProcessor::getMeterSource() const noexcept
     return meterSource.load(std::memory_order_relaxed);
 }
 
+void MaFuckinHolyVUMeterAudioProcessor::setMaximumPeakFrozen(bool shouldFreeze) noexcept
+{
+    peakMeter.setMaximumPeakFrozen(shouldFreeze);
+}
+
+bool MaFuckinHolyVUMeterAudioProcessor::isMaximumPeakFrozen() const noexcept
+{
+    return peakMeter.isMaximumPeakFrozen();
+}
+
+void MaFuckinHolyVUMeterAudioProcessor::resetMaximumPeak() noexcept
+{
+    peakMeter.resetMaximumPeak();
+}
+
 void MaFuckinHolyVUMeterAudioProcessor::updateVuMeter(int numSamples) noexcept
 {
     std::array<float, channelCount> rmsLevels {};
@@ -117,6 +132,11 @@ float MaFuckinHolyVUMeterAudioProcessor::getRmsDb(int channel) const noexcept
 float MaFuckinHolyVUMeterAudioProcessor::getVuDb(int channel) const noexcept
 {
     return vuMeter.getVuDb(channel);
+}
+
+float MaFuckinHolyVUMeterAudioProcessor::getMaximumPeakDb(int channel) const noexcept
+{
+    return peakMeter.getMaximumPeakDb(channel);
 }
 
 void MaFuckinHolyVUMeterAudioProcessor::setTestSignalEnabled(bool enabled) noexcept
@@ -145,7 +165,7 @@ bool MaFuckinHolyVUMeterAudioProcessor::producesMidi() const { return false; }
 bool MaFuckinHolyVUMeterAudioProcessor::isMidiEffect() const { return false; }
 double MaFuckinHolyVUMeterAudioProcessor::getTailLengthSeconds() const { return 0.0; }
 int MaFuckinHolyVUMeterAudioProcessor::getNumPrograms() { return 1; }
-int MaFuckinHolyVUMeterAudioProcessor::getCurrentProgram() { return 0; }
+int MaFuckinHolyVUMeterAudioProcessor::getCurrentProgram() { return {}; }
 void MaFuckinHolyVUMeterAudioProcessor::setCurrentProgram(int) {}
 const juce::String MaFuckinHolyVUMeterAudioProcessor::getProgramName(int) { return {}; }
 void MaFuckinHolyVUMeterAudioProcessor::changeProgramName(int, const juce::String&) {}

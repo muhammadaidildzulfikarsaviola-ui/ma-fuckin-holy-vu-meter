@@ -7,8 +7,6 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 add_subdirectory(JUCE)
 
-set(JUCE_VST3_CAN_REPLACE_VST2 FALSE)
-
 juce_add_plugin(MaFuckinHolyVUMeter
     COMPANY_NAME "Aidil Audio"
     PRODUCT_NAME "MA Fuckin Holy VU Meter"
@@ -72,4 +70,3 @@ target_link_libraries(MaFuckinHolyVUMeter
         juce::juce_recommended_lto_flags
         juce::juce_recommended_warning_flags
 )
-

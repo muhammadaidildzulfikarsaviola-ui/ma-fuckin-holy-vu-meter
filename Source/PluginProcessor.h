@@ -1,7 +1,6 @@
 #pragma once
 
 #include <JuceHeader.h>
-#include "DSP/PeakMeter.h"
 #include "DSP/RMSMeter.h"
 #include "DSP/VUMeter.h"
 
@@ -26,6 +25,7 @@ public:
     void processLoopbackSamples(const float* interleavedSamples, int numFrames, int numChannels, double sourceSampleRate) noexcept;
     void setMeterSource(MeterSource source) noexcept;
     MeterSource getMeterSource() const noexcept;
+
     juce::AudioProcessorEditor* createEditor() override;
     bool hasEditor() const override;
     const juce::String getName() const override;
@@ -40,22 +40,19 @@ public:
     void changeProgramName(int index, const juce::String& newName) override;
     void getStateInformation(juce::MemoryBlock& destData) override;
     void setStateInformation(const void* data, int sizeInBytes) override;
-    float getPeakDb(int channel = 0) const noexcept;
+
     float getRmsDb(int channel = 0) const noexcept;
     float getVuDb(int channel = 0) const noexcept;
-    float getMaximumPeakDb(int channel = 0) const noexcept;
-    void setTestSignalEnabled(bool enabled) noexcept;
-    bool isTestSignalEnabled() const noexcept;
 
 private:
     void updateVuMeter(int numSamples) noexcept;
-    PeakMeter peakMeter;
+
     RMSMeter rmsMeter;
     VUMeter vuMeter;
+
     std::atomic<MeterSource> meterSource { MeterSource::normalInput };
-    std::atomic<bool> testSignalEnabled { false };
     double sampleRate = 44100.0;
-    double testSignalPhase = 0.0;
+
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(MaFuckinHolyVUMeterAudioProcessor)
 };
 

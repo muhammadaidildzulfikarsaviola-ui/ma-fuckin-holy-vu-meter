@@ -33,6 +33,10 @@ public:
     void setMeterSource(MeterSource source) noexcept;
     MeterSource getMeterSource() const noexcept;
 
+    void setMaximumPeakFrozen(bool shouldFreeze) noexcept;
+    bool isMaximumPeakFrozen() const noexcept;
+    void resetMaximumPeak() noexcept;
+
     juce::AudioProcessorEditor* createEditor() override;
     bool hasEditor() const override;
 
@@ -56,6 +60,7 @@ public:
     float getPeakDb(int channel = 0) const noexcept;
     float getRmsDb(int channel = 0) const noexcept;
     float getVuDb(int channel = 0) const noexcept;
+    float getMaximumPeakDb(int channel = 0) const noexcept;
 
     void setTestSignalEnabled(bool enabled) noexcept;
     bool isTestSignalEnabled() const noexcept;

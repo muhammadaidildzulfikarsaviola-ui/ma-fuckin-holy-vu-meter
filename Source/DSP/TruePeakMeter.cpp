@@ -4,7 +4,7 @@ void TruePeakMeter::prepare(double newSampleRate, int maxBlockSize)
 {
     sampleRateHz = newSampleRate > 0.0 ? newSampleRate : 44100.0;
 
-    // 4x oversampling catches inter-sample peaks that a sample peak meter misses.
+    // 4x oversampling is used for inter-sample peak estimation.
     oversampler = std::make_unique<juce::dsp::Oversampling<float>>(
         channelCount,
         2,
@@ -16,6 +16,12 @@ void TruePeakMeter::prepare(double newSampleRate, int maxBlockSize)
     oversampler->reset();
     loopbackBuffer.setSize(channelCount, juce::jmax(1, maxBlockSize), false, false, true);
     reset();
+}
+
+void TruePeakMeter::setSampleRate(double newSampleRate) noexcept
+{
+    if (newSampleRate > 0.0)
+        sampleRateHz = newSampleRate;
 }
 
 void TruePeakMeter::reset()
@@ -80,8 +86,10 @@ void TruePeakMeter::processInterleaved(const float* interleavedSamples,
 
 void TruePeakMeter::processOversampledBlock(const juce::dsp::AudioBlock<float>& block) noexcept
 {
-    constexpr float currentDecayDbPerSecond = 20.0f;
-    const auto blockSeconds = static_cast<float>(block.getNumSamples() / (sampleRateHz * 4.0));
+    constexpr float currentDecayDbPerSecond = 18.0f;
+    constexpr double oversamplingFactor = 4.0;
+    const auto blockSeconds = static_cast<float>(block.getNumSamples()
+                                                 / (sampleRateHz * oversamplingFactor));
 
     for (int channel = 0; channel < channelCount; ++channel)
     {
@@ -93,11 +101,13 @@ void TruePeakMeter::processOversampledBlock(const juce::dsp::AudioBlock<float>& 
             peak = juce::jmax(peak, std::abs(data[sample]));
 
         const auto db = juce::Decibels::gainToDecibels(peak, -100.0f);
+
+        // Current peak: recent true-peak value with a short visual decay.
         auto current = currentPeakDb[static_cast<size_t>(channel)].load(std::memory_order_relaxed);
         current = juce::jmax(db, current - currentDecayDbPerSecond * blockSeconds);
         currentPeakDb[static_cast<size_t>(channel)].store(current, std::memory_order_relaxed);
 
-        // Maximum true peak is retained until the processor is prepared/reset.
+        // Max peak: highest true peak seen since the meter was prepared/reset.
         auto currentMax = maxPeakDb[static_cast<size_t>(channel)].load(std::memory_order_relaxed);
         while (db > currentMax
                && !maxPeakDb[static_cast<size_t>(channel)].compare_exchange_weak(

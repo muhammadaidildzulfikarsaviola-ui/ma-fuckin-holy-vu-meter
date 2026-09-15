@@ -39,9 +39,16 @@ public:
     float getPeakDb() const noexcept;
     float getRmsDb() const noexcept;
 
+    void setTestSignalEnabled(bool enabled) noexcept;
+    bool isTestSignalEnabled() const noexcept;
+
 private:
     PeakMeter peakMeter;
     RMSMeter rmsMeter;
+
+    std::atomic<bool> testSignalEnabled { false };
+    double sampleRate = 44100.0;
+    double testSignalPhase = 0.0;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(MaFuckinHolyVUMeterAudioProcessor)
 };

@@ -92,9 +92,9 @@ MaFuckinHolyVUMeterAudioProcessorEditor::MaFuckinHolyVUMeterAudioProcessorEditor
                              static_cast<juce::Component*>(&connectLoopbackButton) })
         component->setVisible(standaloneMode);
 
-    // Compact footprint. Standalone gets one extra routing row; VST3 stays small.
+    // Compact footprint for a DAW plugin. Standalone gets a little more room for routing.
     setResizable(false, false);
-    setSize(900, standaloneMode ? 610 : 520);
+    setSize(840, standaloneMode ? 570 : 500);
     startTimerHz(30);
 }
 
@@ -156,7 +156,6 @@ void MaFuckinHolyVUMeterAudioProcessorEditor::paint(juce::Graphics& g)
     g.setColour(juce::Colour(0xff515658));
     g.drawRoundedRectangle(panel, 8.0f, 1.0f);
 
-    // Single compact meter bay instead of a large empty black canvas.
     auto meterWindow = panel.reduced(12.0f);
     meterWindow = meterWindow.withTrimmedTop(standaloneMode ? 83.0f : 48.0f)
                              .withTrimmedBottom(27.0f);

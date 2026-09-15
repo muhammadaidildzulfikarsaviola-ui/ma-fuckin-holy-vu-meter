@@ -3,26 +3,28 @@
 namespace
 {
 constexpr float pi = juce::MathConstants<float>::pi;
-// Screen coordinates use +Y downward, so increasing angles move clockwise.
-constexpr float lowerLeftAngle = 135.0f * pi / 180.0f;  // -20 dB
-constexpr float zeroVuAngle = 270.0f * pi / 180.0f;     // 0 VU
-constexpr float upperRightAngle = 315.0f * pi / 180.0f; // +3 dB
+
+// Classic analog VU sweep: lower-left -> top-center -> upper-right.
+constexpr float lowerLeftAngle = 225.0f * pi / 180.0f; // -20 VU
+constexpr float zeroVuAngle = 270.0f * pi / 180.0f;    // 0 VU
+constexpr float upperRightAngle = 315.0f * pi / 180.0f; // +3 VU
 
 juce::Point<float> polarPoint(juce::Point<float> centre, float radius, float angle)
 {
-    return { centre.x + std::cos(angle) * radius, centre.y + std::sin(angle) * radius };
+    return { centre.x + std::cos(angle) * radius,
+             centre.y + std::sin(angle) * radius };
 }
 
 float dbToAngle(float db)
 {
     const auto clampedDb = juce::jlimit(-20.0f, 3.0f, db);
 
-    // Deliberately piecewise: 0 VU is a calibration landmark at the top
-    // centre, not the midpoint of the -20 dB to +3 dB display range.
     if (clampedDb <= 0.0f)
-        return juce::jmap(clampedDb, -20.0f, 0.0f, lowerLeftAngle, zeroVuAngle);
+        return juce::jmap(clampedDb, -20.0f, 0.0f,
+                          lowerLeftAngle, zeroVuAngle);
 
-    return juce::jmap(clampedDb, 0.0f, 3.0f, zeroVuAngle, upperRightAngle);
+    return juce::jmap(clampedDb, 0.0f, 3.0f,
+                      zeroVuAngle, upperRightAngle);
 }
 }
 
@@ -42,24 +44,17 @@ void AnalogMeter::setLevelDb(float db) noexcept
     }
 }
 
-void AnalogMeter::setPeakDb(float db) noexcept
-{
-    const auto newPeak = juce::jlimit(minDb, maxDb, db);
-    if (std::abs(newPeak - peakDb) > 0.001f)
-    {
-        peakDb = newPeak;
-        repaint();
-    }
-}
-
 void AnalogMeter::paint(juce::Graphics& g)
 {
     auto bounds = getLocalBounds().toFloat().reduced(4.0f);
+
+    // Dark outer chassis.
     g.setColour(juce::Colour(0xff0b0d0e));
     g.fillRoundedRectangle(bounds, 10.0f);
     g.setColour(juce::Colour(0xff5a5650));
     g.drawRoundedRectangle(bounds, 10.0f, 1.5f);
 
+    // Simple hardware screws.
     for (const auto point : { bounds.getTopLeft(), bounds.getTopRight(),
                               bounds.getBottomLeft(), bounds.getBottomRight() })
     {
@@ -68,15 +63,17 @@ void AnalogMeter::paint(juce::Graphics& g)
         g.fillEllipse(screw);
         g.setColour(juce::Colour(0xff8d8a80));
         g.drawEllipse(screw, 1.0f);
-        g.drawLine(screw.getX() + 2.5f, screw.getCentreY(), screw.getRight() - 2.5f,
-                   screw.getCentreY(), 1.0f);
+        g.drawLine(screw.getX() + 2.5f, screw.getCentreY(),
+                   screw.getRight() - 2.5f, screw.getCentreY(), 1.0f);
     }
 
+    // Cream analog face. The pivot sits low, like a real panel meter.
     auto inner = bounds.reduced(14.0f, 12.0f);
-    const auto centre = juce::Point<float>(inner.getCentreX(), inner.getBottom() - 5.0f);
-    const auto radius = juce::jmin(inner.getWidth() * 0.49f, inner.getHeight() * 0.92f);
+    const auto centre = juce::Point<float>(inner.getCentreX(), inner.getBottom() + 2.0f);
+    const auto radius = juce::jmin(inner.getWidth() * 0.49f,
+                                   inner.getHeight() * 1.02f);
     const auto face = juce::Rectangle<float>(centre.x - radius, centre.y - radius,
-                                             radius * 2.0f, radius * 1.09f);
+                                             radius * 2.0f, radius * 1.10f);
 
     g.setColour(juce::Colour(0xffe8ddc3));
     g.fillEllipse(face);
@@ -86,61 +83,56 @@ void AnalogMeter::paint(juce::Graphics& g)
     g.saveState();
     g.reduceClipRegion(face.toNearestInt());
 
+    // Dense tick marks, with no numeric scale clutter.
     for (int tick = 0; tick <= 46; ++tick)
     {
-        const auto db = juce::jmap(static_cast<float>(tick), 0.0f, 46.0f, minDb, maxDb);
+        const auto db = juce::jmap(static_cast<float>(tick), 0.0f, 46.0f,
+                                   minDb, maxDb);
         const auto angle = dbToAngle(db);
         const auto major = tick % 10 == 0 || tick == 46;
         const auto outer = polarPoint(centre, radius * 0.84f, angle);
-        const auto innerTick = polarPoint(centre, radius * (major ? 0.68f : 0.74f), angle);
-        g.setColour(db >= 0.0f ? juce::Colour(0xffa62b1e) : juce::Colour(0xff171817));
-        g.drawLine(innerTick.x, innerTick.y, outer.x, outer.y, major ? 1.8f : 0.8f);
+        const auto innerTick = polarPoint(centre,
+                                          radius * (major ? 0.68f : 0.74f),
+                                          angle);
+
+        g.setColour(db >= 0.0f
+                        ? juce::Colour(0xffa62b1e)
+                        : juce::Colour(0xff171817));
+        g.drawLine(innerTick.x, innerTick.y, outer.x, outer.y,
+                   major ? 1.8f : 0.8f);
     }
 
-    constexpr float labels[] { -20.0f, -10.0f, -5.0f, 0.0f, 3.0f };
-    for (const auto db : labels)
-    {
-        const auto point = polarPoint(centre, radius * 0.58f, dbToAngle(db));
-        auto text = juce::String(db, 0);
-        if (db > 0.0f) text = "+" + text;
-        g.setColour(db >= 0.0f ? juce::Colour(0xffa62b1e) : juce::Colour(0xff171817));
-        g.setFont(juce::Font(juce::FontOptions{}.withHeight(12.0f).withStyle("Bold")));
-        g.drawText(text, juce::Rectangle<float>(point.x - 18.0f, point.y - 8.0f, 36.0f, 16.0f).toNearestInt(),
-                   juce::Justification::centred);
-    }
-
+    // Minimal face branding. No numbers inside the analog meter.
     g.setColour(juce::Colour(0xff171817));
-    g.setFont(juce::Font(juce::FontOptions{}.withHeight(18.0f).withStyle("Bold")));
-    g.drawText(channel, face.withX(face.getX() + 16.0f).withY(face.getY() + 14.0f)
-                       .withWidth(28.0f).withHeight(24.0f).toNearestInt(),
-               juce::Justification::centred);
-
     g.setFont(juce::Font(juce::FontOptions{}.withHeight(17.0f).withStyle("Bold")));
-    g.drawText(meterType == "PEAK" ? "PEAK" : "VU",
-               face.withY(face.getY() + face.getHeight() * 0.47f).withHeight(26.0f).toNearestInt(),
+    g.drawText(meterType,
+               face.withY(face.getY() + face.getHeight() * 0.36f)
+                   .withHeight(24.0f).toNearestInt(),
                juce::Justification::centred);
 
-    g.setFont(juce::Font(juce::FontOptions{}.withHeight(11.0f).withStyle("Bold")));
-    g.drawText(meterType, face.withX(face.getX() + 18.0f).withY(face.getY() + face.getHeight() * 0.62f)
-                        .withWidth(54.0f).withHeight(16.0f).toNearestInt(),
-               juce::Justification::centredLeft);
-    g.setFont(juce::Font(juce::FontOptions{}.withHeight(10.0f)));
-    g.drawText("0 VU = -18 dBFS",
-               face.withY(face.getY() + face.getHeight() * 0.65f).withHeight(16.0f).toNearestInt(),
+    g.setFont(juce::Font(juce::FontOptions{}.withHeight(13.0f).withStyle("Bold")));
+    g.drawText(channel,
+               face.withX(face.getX() + 14.0f)
+                   .withY(face.getY() + 12.0f)
+                   .withWidth(28.0f).withHeight(20.0f).toNearestInt(),
                juce::Justification::centred);
 
-    const auto needleTip = polarPoint(centre, radius * 0.66f, dbToAngle(levelDb));
-    const auto needleBase = polarPoint(centre, radius * 0.06f, dbToAngle(levelDb) + pi);
+    // Needle.
+    const auto angle = dbToAngle(levelDb);
+    const auto needleTip = polarPoint(centre, radius * 0.70f, angle);
+    const auto needleBase = polarPoint(centre, radius * 0.055f, angle + pi);
+
     g.setColour(juce::Colour(0xffb72b1c));
-    g.drawLine(needleBase.x, needleBase.y, needleTip.x, needleTip.y, 2.4f);
+    g.drawLine(needleBase.x, needleBase.y,
+               needleTip.x, needleTip.y, 2.4f);
 
-    const auto peakPoint = polarPoint(centre, radius * 0.88f, dbToAngle(peakDb));
-    g.setColour(juce::Colour(0xffd54831));
-    g.fillEllipse(juce::Rectangle<float>(peakPoint.x - 2.0f, peakPoint.y - 2.0f, 4.0f, 4.0f));
-
+    // Pivot cap.
     g.setColour(juce::Colour(0xff171817));
-    g.fillEllipse(juce::Rectangle<float>(centre.x - 9.0f, centre.y - 9.0f, 18.0f, 18.0f));
+    g.fillEllipse(juce::Rectangle<float>(centre.x - 9.0f, centre.y - 9.0f,
+                                         18.0f, 18.0f));
     g.setColour(juce::Colour(0xffa9a69d));
-    g.fillEllipse(juce::Rectangle<float>(centre.x - 4.0f, centre.y - 4.0f, 8.0f, 8.0f));
+    g.fillEllipse(juce::Rectangle<float>(centre.x - 4.0f, centre.y - 4.0f,
+                                         8.0f, 8.0f));
+
     g.restoreState();
 }

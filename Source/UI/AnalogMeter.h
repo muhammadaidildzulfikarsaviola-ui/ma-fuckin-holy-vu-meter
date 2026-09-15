@@ -5,7 +5,7 @@
 class AnalogMeter : public juce::Component
 {
 public:
-    explicit AnalogMeter(juce::String channelLabel = "L");
+    AnalogMeter(juce::String channelLabel = "L", juce::String meterLabel = "RMS");
     ~AnalogMeter() override = default;
 
     void setLevelDb(float db) noexcept;
@@ -18,6 +18,7 @@ private:
     static constexpr float maxDb = 3.0f;
 
     juce::String channel;
+    juce::String meterType;
     float levelDb = minDb;
     float peakDb = minDb;
 

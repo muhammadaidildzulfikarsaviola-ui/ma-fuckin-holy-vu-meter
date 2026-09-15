@@ -75,7 +75,9 @@ void MaFuckinHolyVUMeterAudioProcessorEditor::timerCallback()
 
     const auto normalized = juce::jlimit(0.0f, 1.0f, juce::jmap(peakDb, -60.0f, 0.0f, 0.0f, 1.0f));
     displayedLevel = normalized;
-    levelBar.setValue(displayedLevel, juce::dontSendNotification);
+
+    // ProgressBar reads the value through the reference passed to its
+    // constructor, so updating displayedLevel is sufficient.
 
     statusLabel.setText(
         peakDb > -60.0f ? "AUDIO SIGNAL DETECTED" : "WAITING FOR AUDIO SIGNAL",

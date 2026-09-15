@@ -227,7 +227,6 @@ void MaFuckinHolyVUMeterAudioProcessorEditor::timerCallback()
 {
     constexpr float vuCalibrationDb = 18.0f; // -18 dBFS = 0 VU
 
-    // True peak is already in dBFS. Do not add VU calibration to it.
     const auto leftTruePeak = audioProcessor.getTruePeakCurrentDb(0);
     const auto rightTruePeak = audioProcessor.getTruePeakCurrentDb(1);
     const auto leftTruePeakMax = audioProcessor.getTruePeakMaxDb(0);

@@ -39,11 +39,11 @@ public:
     void setStateInformation(const void* data, int sizeInBytes) override;
 
     float getVuDb(int channel = 0) const noexcept;
-    float getTruePeakDb(int channel = 0) const noexcept;
+    float getTruePeakCurrentDb(int channel = 0) const noexcept;
+    float getTruePeakMaxDb(int channel = 0) const noexcept;
     float getVuPeakHoldDb(int channel = 0) const noexcept;
 
 private:
-    void updateVuMeter(int numSamples) noexcept;
     void updateVuPeakHold(int numSamples) noexcept;
 
     RMSMeter rmsMeter;

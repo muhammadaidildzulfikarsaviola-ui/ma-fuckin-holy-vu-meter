@@ -26,7 +26,6 @@ MaFuckinHolyVUMeterAudioProcessorEditor::
     statusLabel.setJustificationType(juce::Justification::centred);
     addAndMakeVisible(statusLabel);
 
-    levelBar.setRange(0.0, 1.0, 0.0);
     levelBar.setPercentageDisplay(false);
     addAndMakeVisible(levelBar);
 

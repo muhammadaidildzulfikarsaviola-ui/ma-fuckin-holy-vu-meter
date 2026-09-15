@@ -69,14 +69,9 @@ MaFuckinHolyVUMeterAudioProcessor::MeterSource MaFuckinHolyVUMeterAudioProcessor
     return meterSource.load(std::memory_order_relaxed);
 }
 
-void MaFuckinHolyVUMeterAudioProcessor::updateVuMeter(int numSamples) noexcept
-{
-    vuMeter.process({ rmsMeter.getRmsLinear(0), rmsMeter.getRmsLinear(1) }, numSamples);
-}
-
 void MaFuckinHolyVUMeterAudioProcessor::updateVuPeakHold(int numSamples) noexcept
 {
-    if (numSamples <= 0)
+    if (numSamples <= 0 || sampleRate <= 0.0)
         return;
 
     constexpr float holdSeconds = 1.0f;
@@ -85,12 +80,13 @@ void MaFuckinHolyVUMeterAudioProcessor::updateVuPeakHold(int numSamples) noexcep
 
     for (int channel = 0; channel < channelCount; ++channel)
     {
-        const auto truePeakDb = truePeakMeter.getPeakDb(channel);
+        // The VU panel's red needle is a peak hold of the true-peak signal.
+        const auto currentTruePeakDb = truePeakMeter.getCurrentPeakDb(channel);
         auto heldDb = vuPeakHoldDb[static_cast<size_t>(channel)].load(std::memory_order_relaxed);
 
-        if (truePeakDb > heldDb)
+        if (currentTruePeakDb > heldDb)
         {
-            heldDb = truePeakDb;
+            heldDb = currentTruePeakDb;
             vuPeakHoldElapsedSeconds[static_cast<size_t>(channel)] = 0.0f;
         }
         else
@@ -111,9 +107,14 @@ float MaFuckinHolyVUMeterAudioProcessor::getVuDb(int channel) const noexcept
     return vuMeter.getVuDb(channel);
 }
 
-float MaFuckinHolyVUMeterAudioProcessor::getTruePeakDb(int channel) const noexcept
+float MaFuckinHolyVUMeterAudioProcessor::getTruePeakCurrentDb(int channel) const noexcept
 {
-    return truePeakMeter.getPeakDb(channel);
+    return truePeakMeter.getCurrentPeakDb(channel);
+}
+
+float MaFuckinHolyVUMeterAudioProcessor::getTruePeakMaxDb(int channel) const noexcept
+{
+    return truePeakMeter.getMaxPeakDb(channel);
 }
 
 float MaFuckinHolyVUMeterAudioProcessor::getVuPeakHoldDb(int channel) const noexcept
@@ -132,7 +133,7 @@ int MaFuckinHolyVUMeterAudioProcessor::getNumPrograms() { return 1; }
 int MaFuckinHolyVUMeterAudioProcessor::getCurrentProgram() { return 0; }
 void MaFuckinHolyVUMeterAudioProcessor::setCurrentProgram(int) {}
 const juce::String MaFuckinHolyVUMeterAudioProcessor::getProgramName(int) { return {}; }
-void MaFuckinHolyVUMeterAudioProcessor::changeProgramName(int, const juce::String&) {}
+void MaFuckinHolyVUMeterAudioProcessor::changeProgramName(int) {}
 void MaFuckinHolyVUMeterAudioProcessor::getStateInformation(juce::MemoryBlock&) {}
 void MaFuckinHolyVUMeterAudioProcessor::setStateInformation(const void*, int) {}
 

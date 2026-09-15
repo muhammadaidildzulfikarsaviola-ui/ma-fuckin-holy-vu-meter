@@ -17,10 +17,7 @@ void MaFuckinHolyVUMeterAudioProcessor::prepareToPlay(double newSampleRate, int 
     sampleRate = newSampleRate > 0.0 ? newSampleRate : 44100.0;
     vuMeter.prepare(sampleRate);
     truePeakMeter.prepare(sampleRate, samplesPerBlock);
-
-    for (auto& peak : vuPeakHoldDb)
-        peak.store(-100.0f, std::memory_order_relaxed);
-    vuPeakHoldElapsedSeconds.fill(0.0f);
+    resetMeterPeaks();
 }
 
 void MaFuckinHolyVUMeterAudioProcessor::releaseResources() {}
@@ -69,6 +66,14 @@ MaFuckinHolyVUMeterAudioProcessor::MeterSource MaFuckinHolyVUMeterAudioProcessor
     return meterSource.load(std::memory_order_relaxed);
 }
 
+void MaFuckinHolyVUMeterAudioProcessor::resetMeterPeaks() noexcept
+{
+    truePeakMeter.reset();
+    for (auto& peak : vuPeakHoldDb)
+        peak.store(-100.0f, std::memory_order_relaxed);
+    vuPeakHoldElapsedSeconds.fill(0.0f);
+}
+
 void MaFuckinHolyVUMeterAudioProcessor::updateVuPeakHold(int numSamples) noexcept
 {
     if (numSamples <= 0 || sampleRate <= 0.0)
@@ -80,7 +85,6 @@ void MaFuckinHolyVUMeterAudioProcessor::updateVuPeakHold(int numSamples) noexcep
 
     for (int channel = 0; channel < channelCount; ++channel)
     {
-        // VU peak hold follows the VU envelope itself, independently of true peak.
         const auto currentVuDb = getVuDb(channel);
         auto heldDb = vuPeakHoldDb[static_cast<size_t>(channel)].load(std::memory_order_relaxed);
 

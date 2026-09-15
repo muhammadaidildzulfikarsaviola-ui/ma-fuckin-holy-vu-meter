@@ -19,7 +19,8 @@ public:
                             int numFrames,
                             int numChannels) noexcept;
 
-    float getPeakDb(int channel = 0) const noexcept;
+    float getCurrentPeakDb(int channel = 0) const noexcept;
+    float getMaxPeakDb(int channel = 0) const noexcept;
 
 private:
     void processOversampledBlock(const juce::dsp::AudioBlock<float>& block) noexcept;
@@ -27,7 +28,8 @@ private:
     double sampleRateHz = 44100.0;
     std::unique_ptr<juce::dsp::Oversampling<float>> oversampler;
     juce::AudioBuffer<float> loopbackBuffer;
-    std::array<std::atomic<float>, channelCount> peakDb { -100.0f, -100.0f };
+    std::array<std::atomic<float>, channelCount> currentPeakDb { -100.0f, -100.0f };
+    std::array<std::atomic<float>, channelCount> maxPeakDb { -100.0f, -100.0f };
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(TruePeakMeter)
 };

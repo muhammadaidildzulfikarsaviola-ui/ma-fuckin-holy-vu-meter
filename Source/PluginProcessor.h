@@ -1,7 +1,6 @@
 #pragma once
 
 #include <JuceHeader.h>
-#include "DSP/RMSMeter.h"
 #include "DSP/VUMeter.h"
 #include "DSP/TruePeakMeter.h"
 
@@ -9,7 +8,6 @@ class MaFuckinHolyVUMeterAudioProcessor : public juce::AudioProcessor
 {
 public:
     static constexpr int channelCount = 2;
-
     enum class MeterSource : int { normalInput, wasapiLoopback };
 
     MaFuckinHolyVUMeterAudioProcessor();
@@ -46,13 +44,11 @@ public:
 private:
     void updateVuPeakHold(int numSamples) noexcept;
 
-    RMSMeter rmsMeter;
     VUMeter vuMeter;
     TruePeakMeter truePeakMeter;
 
     std::array<std::atomic<float>, channelCount> vuPeakHoldDb { -100.0f, -100.0f };
     std::array<float, channelCount> vuPeakHoldElapsedSeconds { 0.0f, 0.0f };
-
     std::atomic<MeterSource> meterSource { MeterSource::normalInput };
     double sampleRate = 44100.0;
 

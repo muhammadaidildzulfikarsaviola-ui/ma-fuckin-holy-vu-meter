@@ -8,33 +8,33 @@ void RMSMeter::prepare(double sampleRate)
 
 void RMSMeter::reset()
 {
-    rmsLinear.store(0.0f, std::memory_order_relaxed);
+    for (auto& rms : rmsLinear)
+        rms.store(0.0f, std::memory_order_relaxed);
 }
 
 void RMSMeter::process(const juce::AudioBuffer<float>& buffer)
 {
-    if (buffer.getNumSamples() <= 0 || buffer.getNumChannels() <= 0)
-        return;
+    const auto sampleCount = buffer.getNumSamples();
 
-    double sumSquares = 0.0;
-    int sampleCount = 0;
-
-    for (int channel = 0; channel < buffer.getNumChannels(); ++channel)
+    for (int channel = 0; channel < channelCount; ++channel)
     {
-        const auto* data = buffer.getReadPointer(channel);
-
-        for (int sample = 0; sample < buffer.getNumSamples(); ++sample)
+        if (channel >= buffer.getNumChannels() || sampleCount <= 0)
         {
-            const double value = static_cast<double>(data[sample]);
-            sumSquares += value * value;
-            ++sampleCount;
+            rmsLinear[static_cast<size_t>(channel)].store(0.0f, std::memory_order_relaxed);
+            continue;
         }
-    }
 
-    if (sampleCount > 0)
-    {
+        const auto* data = buffer.getReadPointer(channel);
+        double sumSquares = 0.0;
+
+        for (int sample = 0; sample < sampleCount; ++sample)
+        {
+            const auto value = static_cast<double>(data[sample]);
+            sumSquares += value * value;
+        }
+
         const auto rms = static_cast<float>(std::sqrt(sumSquares / sampleCount));
-        rmsLinear.store(rms, std::memory_order_relaxed);
+        rmsLinear[static_cast<size_t>(channel)].store(rms, std::memory_order_relaxed);
     }
 }
 
@@ -61,15 +61,18 @@ void RMSMeter::processTestSignal(int numSamples, double sampleRate, double& phas
     }
 
     const auto rms = static_cast<float>(std::sqrt(sumSquares / numSamples));
-    rmsLinear.store(rms, std::memory_order_relaxed);
+
+    for (auto& level : rmsLinear)
+        level.store(rms, std::memory_order_relaxed);
 }
 
-float RMSMeter::getRmsDb() const noexcept
+float RMSMeter::getRmsDb(int channel) const noexcept
 {
-    return juce::Decibels::gainToDecibels(getRmsLinear(), -100.0f);
+    return juce::Decibels::gainToDecibels(getRmsLinear(channel), -100.0f);
 }
 
-float RMSMeter::getRmsLinear() const noexcept
+float RMSMeter::getRmsLinear(int channel) const noexcept
 {
-    return rmsLinear.load(std::memory_order_relaxed);
+    const auto index = juce::jlimit(0, channelCount - 1, channel);
+    return rmsLinear[static_cast<size_t>(index)].load(std::memory_order_relaxed);
 }

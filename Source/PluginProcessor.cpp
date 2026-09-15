@@ -50,23 +50,58 @@ void MaFuckinHolyVUMeterAudioProcessor::processBlock(
 
     if (testSignalEnabled.load(std::memory_order_relaxed))
     {
-        // Diagnostic signal goes only to the meters; the host buffer is never
-        // altered, keeping both VST3 and standalone processing transparent.
+        // Diagnostic signal is measured only. The real buffer remains a
+        // transparent passthrough in both Standalone and VST3 contexts.
         auto rmsPhase = testSignalPhase;
         peakMeter.processTestSignal(buffer.getNumSamples(), sampleRate, testSignalPhase);
         rmsMeter.processTestSignal(buffer.getNumSamples(), sampleRate, rmsPhase);
-    }
-    else
-    {
-        peakMeter.process(buffer);
-        rmsMeter.process(buffer);
+        updateVuMeter(buffer.getNumSamples());
+        return;
     }
 
+    // In standalone loopback mode, native WASAPI capture owns the meter input.
+    // This host callback still leaves the output buffer completely untouched.
+    if (getMeterSource() == MeterSource::wasapiLoopback)
+        return;
+
+    peakMeter.process(buffer);
+    rmsMeter.process(buffer);
+    updateVuMeter(buffer.getNumSamples());
+}
+
+void MaFuckinHolyVUMeterAudioProcessor::processLoopbackSamples(
+    const float* interleavedSamples, int numFrames, int numChannels,
+    double sourceSampleRate) noexcept
+{
+    juce::ignoreUnused(sourceSampleRate);
+
+    if (getMeterSource() != MeterSource::wasapiLoopback
+        || testSignalEnabled.load(std::memory_order_relaxed))
+        return;
+
+    peakMeter.processInterleaved(interleavedSamples, numFrames, numChannels);
+    rmsMeter.processInterleaved(interleavedSamples, numFrames, numChannels);
+    updateVuMeter(numFrames);
+}
+
+void MaFuckinHolyVUMeterAudioProcessor::setMeterSource(MeterSource source) noexcept
+{
+    meterSource.store(source, std::memory_order_relaxed);
+}
+
+MaFuckinHolyVUMeterAudioProcessor::MeterSource
+MaFuckinHolyVUMeterAudioProcessor::getMeterSource() const noexcept
+{
+    return meterSource.load(std::memory_order_relaxed);
+}
+
+void MaFuckinHolyVUMeterAudioProcessor::updateVuMeter(int numSamples) noexcept
+{
     std::array<float, channelCount> rmsLevels {};
     for (int channel = 0; channel < channelCount; ++channel)
         rmsLevels[static_cast<size_t>(channel)] = rmsMeter.getRmsLinear(channel);
 
-    vuMeter.process(rmsLevels, buffer.getNumSamples());
+    vuMeter.process(rmsLevels, numSamples);
 }
 
 float MaFuckinHolyVUMeterAudioProcessor::getPeakDb(int channel) const noexcept

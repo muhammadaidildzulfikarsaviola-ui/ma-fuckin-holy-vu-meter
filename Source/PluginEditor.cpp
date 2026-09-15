@@ -34,21 +34,10 @@ MaFuckinHolyVUMeterAudioProcessorEditor::MaFuckinHolyVUMeterAudioProcessorEditor
     titleLabel.setColour(juce::Label::textColourId, juce::Colour(0xffe0e0dc));
     addAndMakeVisible(titleLabel);
 
-    subtitleLabel.setText("STEREO STUDIO METER", juce::dontSendNotification);
+    subtitleLabel.setText("STEREO ANALOG VU", juce::dontSendNotification);
     subtitleLabel.setFont(juce::Font(juce::FontOptions{}.withHeight(11.0f)));
     subtitleLabel.setColour(juce::Label::textColourId, juce::Colour(0xffa8aaa7));
     addAndMakeVisible(subtitleLabel);
-
-    for (auto* readout : { &leftReadout, &rightReadout, &maximumPeakLabel })
-    {
-        readout->setFont(juce::Font(juce::FontOptions{}.withHeight(13.0f)));
-        readout->setColour(juce::Label::textColourId, juce::Colour(0xffd8dbd8));
-        addAndMakeVisible(*readout);
-    }
-
-    maximumPeakLabel.setJustificationType(juce::Justification::centredLeft);
-    maximumPeakLabel.setFont(juce::Font(juce::FontOptions{}.withHeight(14.0f).withStyle("Bold")));
-    maximumPeakLabel.setColour(juce::Label::textColourId, juce::Colour(0xfff0af55));
 
     statusLabel.setFont(juce::Font(juce::FontOptions{}.withHeight(11.0f).withStyle("Bold")));
     statusLabel.setColour(juce::Label::textColourId, juce::Colour(0xffa8aaa7));
@@ -59,19 +48,12 @@ MaFuckinHolyVUMeterAudioProcessorEditor::MaFuckinHolyVUMeterAudioProcessorEditor
     routingLabel.setColour(juce::Label::textColourId, juce::Colour(0xffa8aaa7));
     addAndMakeVisible(routingLabel);
 
-    analogButton.setButtonText("ANALOG");
-    digitalButton.setButtonText("DIGITAL");
-    testSignalButton.setButtonText("TEST SIGNAL");
-    holdPeakButton.setButtonText("HOLD: OFF");
-    resetPeakButton.setButtonText("RESET");
     refreshDevicesButton.setButtonText("REFRESH");
     connectLoopbackButton.setButtonText("CONNECT");
-    for (auto* button : { &analogButton, &digitalButton, &testSignalButton, &holdPeakButton,
-                          &resetPeakButton, &refreshDevicesButton, &connectLoopbackButton })
-    {
-        configureButton(*button);
-        addAndMakeVisible(*button);
-    }
+    configureButton(refreshDevicesButton);
+    configureButton(connectLoopbackButton);
+    addAndMakeVisible(refreshDevicesButton);
+    addAndMakeVisible(connectLoopbackButton);
 
     configureComboBox(sourceModeBox);
     configureComboBox(loopbackDeviceBox);
@@ -81,17 +63,6 @@ MaFuckinHolyVUMeterAudioProcessorEditor::MaFuckinHolyVUMeterAudioProcessorEditor
     addAndMakeVisible(sourceModeBox);
     addAndMakeVisible(loopbackDeviceBox);
 
-    analogButton.onClick = [this] { setDisplayMode(DisplayMode::analog); };
-    digitalButton.onClick = [this] { setDisplayMode(DisplayMode::digital); };
-    testSignalButton.onClick = [this]
-    {
-        audioProcessor.setTestSignalEnabled(!audioProcessor.isTestSignalEnabled());
-    };
-    holdPeakButton.onClick = [this]
-    {
-        audioProcessor.setMaximumPeakFrozen(!audioProcessor.isMaximumPeakFrozen());
-    };
-    resetPeakButton.onClick = [this] { audioProcessor.resetMaximumPeak(); };
     sourceModeBox.onChange = [this] { updateMeterSource(); };
     loopbackDeviceBox.onChange = [this]
     {
@@ -101,11 +72,8 @@ MaFuckinHolyVUMeterAudioProcessorEditor::MaFuckinHolyVUMeterAudioProcessorEditor
     refreshDevicesButton.onClick = [this] { refreshLoopbackDevices(); };
     connectLoopbackButton.onClick = [this] { updateMeterSource(); };
 
-    addAndMakeVisible(leftRmsMeter);
-    addAndMakeVisible(rightRmsMeter);
-    addAndMakeVisible(leftPeakMeter);
-    addAndMakeVisible(rightPeakMeter);
-    addChildComponent(digitalMeter);
+    addAndMakeVisible(leftMeter);
+    addAndMakeVisible(rightMeter);
 
     if (standaloneMode)
         refreshLoopbackDevices();
@@ -117,8 +85,9 @@ MaFuckinHolyVUMeterAudioProcessorEditor::MaFuckinHolyVUMeterAudioProcessorEditor
                              static_cast<juce::Component*>(&connectLoopbackButton) })
         component->setVisible(standaloneMode);
 
-    setDisplayMode(DisplayMode::analog);
-    setSize(980, standaloneMode ? 900 : 830);
+    // Deliberately fixed-size. This meter is designed as a hardware-style panel.
+    setResizable(false, false);
+    setSize(980, standaloneMode ? 680 : 600);
     startTimerHz(30);
 }
 
@@ -127,26 +96,6 @@ MaFuckinHolyVUMeterAudioProcessorEditor::~MaFuckinHolyVUMeterAudioProcessorEdito
     loopbackCapture.stopCapture();
     audioProcessor.setMeterSource(MaFuckinHolyVUMeterAudioProcessor::MeterSource::normalInput);
     stopTimer();
-}
-
-void MaFuckinHolyVUMeterAudioProcessorEditor::setDisplayMode(DisplayMode mode)
-{
-    displayMode = mode;
-    const auto analog = mode == DisplayMode::analog;
-
-    for (auto* component : { static_cast<juce::Component*>(&leftRmsMeter),
-                             static_cast<juce::Component*>(&rightRmsMeter),
-                             static_cast<juce::Component*>(&leftPeakMeter),
-                             static_cast<juce::Component*>(&rightPeakMeter),
-                             static_cast<juce::Component*>(&maximumPeakLabel),
-                             static_cast<juce::Component*>(&holdPeakButton),
-                             static_cast<juce::Component*>(&resetPeakButton) })
-        component->setVisible(analog);
-
-    digitalMeter.setVisible(!analog);
-    analogButton.setToggleState(analog, juce::dontSendNotification);
-    digitalButton.setToggleState(!analog, juce::dontSendNotification);
-    resized();
 }
 
 void MaFuckinHolyVUMeterAudioProcessorEditor::refreshLoopbackDevices()
@@ -202,29 +151,26 @@ void MaFuckinHolyVUMeterAudioProcessorEditor::paint(juce::Graphics& g)
     g.drawRoundedRectangle(panel, 10.0f, 1.0f);
 
     auto meterWindow = getLocalBounds().toFloat().reduced(28.0f, 0.0f);
-    meterWindow = meterWindow.withTrimmedTop(standaloneMode ? 126.0f : 74.0f)
-                             .withTrimmedBottom(58.0f);
+    meterWindow = meterWindow.withTrimmedTop(standaloneMode ? 112.0f : 68.0f)
+                             .withTrimmedBottom(50.0f);
     g.setColour(juce::Colour(0xff07090a));
     g.fillRoundedRectangle(meterWindow, 8.0f);
     g.setColour(juce::Colour(0xff3d4446));
     g.drawRoundedRectangle(meterWindow, 8.0f, 1.0f);
 
     g.setColour(juce::Colour(0xff5a5e5c));
-    g.drawLine(28.0f, getHeight() - 52.0f,
-               static_cast<float>(getWidth() - 28), getHeight() - 52.0f, 1.0f);
+    g.drawLine(28.0f, getHeight() - 44.0f,
+               static_cast<float>(getWidth() - 28), getHeight() - 44.0f, 1.0f);
 }
 
 void MaFuckinHolyVUMeterAudioProcessorEditor::resized()
 {
     auto area = getLocalBounds().reduced(28);
+
     auto header = area.removeFromTop(56);
-    auto titleArea = header.removeFromLeft(360);
+    auto titleArea = header.removeFromLeft(420);
     titleLabel.setBounds(titleArea.removeFromTop(30));
     subtitleLabel.setBounds(titleArea);
-
-    auto modes = header.removeFromRight(220);
-    analogButton.setBounds(modes.removeFromLeft(100).reduced(3));
-    digitalButton.setBounds(modes.reduced(3));
 
     if (standaloneMode)
     {
@@ -236,68 +182,25 @@ void MaFuckinHolyVUMeterAudioProcessorEditor::resized()
         routingLabel.setBounds(routing.reduced(4));
     }
 
-    auto footer = area.removeFromBottom(40);
-    testSignalButton.setBounds(footer.removeFromLeft(130).reduced(2));
-    leftReadout.setBounds(footer.removeFromLeft(205).reduced(4));
-    rightReadout.setBounds(footer.removeFromLeft(205).reduced(4));
+    auto footer = area.removeFromBottom(36);
     statusLabel.setBounds(footer.reduced(4));
 
     auto meterArea = area.reduced(6, 6);
-    if (displayMode == DisplayMode::analog)
-    {
-        auto peakControls = meterArea.removeFromBottom(38);
-        maximumPeakLabel.setBounds(peakControls.removeFromLeft(360).reduced(4));
-        holdPeakButton.setBounds(peakControls.removeFromLeft(112).reduced(3));
-        resetPeakButton.setBounds(peakControls.removeFromLeft(84).reduced(3));
-
-        auto topRow = meterArea.removeFromTop(meterArea.getHeight() / 2);
-        auto topLeft = topRow.removeFromLeft(topRow.getWidth() / 2);
-        leftRmsMeter.setBounds(topLeft.reduced(5));
-        rightRmsMeter.setBounds(topRow.reduced(5));
-
-        auto bottomLeft = meterArea.removeFromLeft(meterArea.getWidth() / 2);
-        leftPeakMeter.setBounds(bottomLeft.reduced(5));
-        rightPeakMeter.setBounds(meterArea.reduced(5));
-    }
-    else
-    {
-        digitalMeter.setBounds(meterArea.reduced(5));
-    }
+    auto leftArea = meterArea.removeFromLeft(meterArea.getWidth() / 2);
+    leftMeter.setBounds(leftArea.reduced(5));
+    rightMeter.setBounds(meterArea.reduced(5));
 }
 
 void MaFuckinHolyVUMeterAudioProcessorEditor::timerCallback()
 {
-    const auto leftPeak = audioProcessor.getPeakDb(0);
-    const auto rightPeak = audioProcessor.getPeakDb(1);
-    const auto leftRms = audioProcessor.getRmsDb(0);
-    const auto rightRms = audioProcessor.getRmsDb(1);
-    const auto leftMaximum = audioProcessor.getMaximumPeakDb(0);
-    const auto rightMaximum = audioProcessor.getMaximumPeakDb(1);
+    // VUMeter reports dBFS. Calibration is -18 dBFS = 0 VU,
+    // so convert to the meter's relative VU scale before drawing.
+    constexpr float vuCalibrationDb = 18.0f;
+    const auto leftVu = audioProcessor.getVuDb(0) + vuCalibrationDb;
+    const auto rightVu = audioProcessor.getVuDb(1) + vuCalibrationDb;
 
-    leftRmsMeter.setLevelDb(audioProcessor.getVuDb(0));
-    leftRmsMeter.setPeakDb(leftPeak);
-    rightRmsMeter.setLevelDb(audioProcessor.getVuDb(1));
-    rightRmsMeter.setPeakDb(rightPeak);
-    leftPeakMeter.setLevelDb(leftPeak);
-    leftPeakMeter.setPeakDb(leftMaximum);
-    rightPeakMeter.setLevelDb(rightPeak);
-    rightPeakMeter.setPeakDb(rightMaximum);
-    digitalMeter.setLevels(leftPeak, leftRms, rightPeak, rightRms);
-
-    leftReadout.setText("L  RMS " + juce::String(leftRms, 1) + " / PEAK "
-                       + juce::String(leftPeak, 1) + " dBFS", juce::dontSendNotification);
-    rightReadout.setText("R  RMS " + juce::String(rightRms, 1) + " / PEAK "
-                        + juce::String(rightPeak, 1) + " dBFS", juce::dontSendNotification);
-    maximumPeakLabel.setText("MAX PEAK  L " + juce::String(leftMaximum, 1)
-                             + " dBFS   •   R " + juce::String(rightMaximum, 1) + " dBFS",
-                             juce::dontSendNotification);
-
-    const auto testMode = audioProcessor.isTestSignalEnabled();
-    const auto peakFrozen = audioProcessor.isMaximumPeakFrozen();
-    testSignalButton.setToggleState(testMode, juce::dontSendNotification);
-    testSignalButton.setButtonText(testMode ? "TEST: ON" : "TEST SIGNAL");
-    holdPeakButton.setToggleState(peakFrozen, juce::dontSendNotification);
-    holdPeakButton.setButtonText(peakFrozen ? "HOLD: ON" : "HOLD: OFF");
+    leftMeter.setLevelDb(leftVu);
+    rightMeter.setLevelDb(rightVu);
 
     if (standaloneMode)
     {
@@ -306,19 +209,18 @@ void MaFuckinHolyVUMeterAudioProcessorEditor::timerCallback()
                                  + " • " + loopbackCapture.getStatusText(),
                                  juce::dontSendNotification);
         else
-            routingLabel.setText("MODE: INPUT • JUCE STANDALONE DEVICE • configure driver/rate/buffer in Audio/MIDI Settings",
+            routingLabel.setText("MODE: INPUT • JUCE STANDALONE AUDIO DEVICE",
                                  juce::dontSendNotification);
     }
 
-    if (testMode)
-        statusLabel.setText("TEST SIGNAL • 440 Hz • -12 dBFS PEAK • ~ -15 dBFS RMS",
-                            juce::dontSendNotification);
-    else if (standaloneMode && sourceModeBox.getSelectedId() == 2)
-        statusLabel.setText(loopbackCapture.isCapturing() ? "WASAPI LOOPBACK CAPTURING"
-                                                           : "WASAPI LOOPBACK NOT CONNECTED",
+    if (standaloneMode && sourceModeBox.getSelectedId() == 2)
+        statusLabel.setText(loopbackCapture.isCapturing()
+                                ? "WASAPI LOOPBACK CAPTURING"
+                                : "WASAPI LOOPBACK NOT CONNECTED",
                             juce::dontSendNotification);
     else
-        statusLabel.setText(juce::jmax(leftPeak, rightPeak) > -60.0f
-                                ? "STEREO SIGNAL DETECTED" : "WAITING FOR AUDIO SIGNAL",
+        statusLabel.setText((leftVu > -20.0f || rightVu > -20.0f)
+                                ? "STEREO SIGNAL DETECTED"
+                                : "WAITING FOR AUDIO SIGNAL",
                             juce::dontSendNotification);
 }

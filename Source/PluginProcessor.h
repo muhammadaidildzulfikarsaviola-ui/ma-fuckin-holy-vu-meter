@@ -10,6 +10,12 @@ class MaFuckinHolyVUMeterAudioProcessor : public juce::AudioProcessor
 public:
     static constexpr int channelCount = 2;
 
+    enum class MeterSource : int
+    {
+        normalInput,
+        wasapiLoopback
+    };
+
     MaFuckinHolyVUMeterAudioProcessor();
     ~MaFuckinHolyVUMeterAudioProcessor() override;
 
@@ -18,6 +24,14 @@ public:
 
     bool isBusesLayoutSupported(const BusesLayout& layouts) const override;
     void processBlock(juce::AudioBuffer<float>&, juce::MidiBuffer&) override;
+
+    // Called only by the Windows standalone loopback capture thread. This
+    // updates meter state only; it never writes to a JUCE/host audio buffer.
+    void processLoopbackSamples(const float* interleavedSamples, int numFrames,
+                                int numChannels, double sourceSampleRate) noexcept;
+
+    void setMeterSource(MeterSource source) noexcept;
+    MeterSource getMeterSource() const noexcept;
 
     juce::AudioProcessorEditor* createEditor() override;
     bool hasEditor() const override;
@@ -47,10 +61,13 @@ public:
     bool isTestSignalEnabled() const noexcept;
 
 private:
+    void updateVuMeter(int numSamples) noexcept;
+
     PeakMeter peakMeter;
     RMSMeter rmsMeter;
     VUMeter vuMeter;
 
+    std::atomic<MeterSource> meterSource { MeterSource::normalInput };
     std::atomic<bool> testSignalEnabled { false };
     double sampleRate = 44100.0;
     double testSignalPhase = 0.0;

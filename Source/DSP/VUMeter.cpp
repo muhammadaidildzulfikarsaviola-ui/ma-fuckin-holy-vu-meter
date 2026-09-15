@@ -15,13 +15,14 @@ void VUMeter::reset()
 
 void VUMeter::processAverageLevel(float averageAbs, int channel, double durationSeconds) noexcept
 {
-    // IEC-style VU movement is slow: approximately 300 ms integration to 99%
-    // for a step. Release is intentionally a little slower for a hardware feel.
-    constexpr double attackSeconds = 0.300;
-    constexpr double releaseSeconds = 0.450;
+    // A standard VU meter reaches about 99% of a steady-state step in 300 ms.
+    // For a one-pole approximation, tau = 300 ms / ln(100) ~= 65.1 ms.
+    constexpr double attackTimeConstant = 0.0651;
+    constexpr double releaseTimeConstant = 0.300;
     const auto index = static_cast<size_t>(channel);
     const auto target = juce::jmax(0.0f, averageAbs);
-    const auto timeConstant = target >= smoothedLinear[index] ? attackSeconds : releaseSeconds;
+    const auto timeConstant = target >= smoothedLinear[index]
+        ? attackTimeConstant : releaseTimeConstant;
     const auto coefficient = static_cast<float>(std::exp(-durationSeconds / timeConstant));
 
     smoothedLinear[index] = target + coefficient * (smoothedLinear[index] - target);

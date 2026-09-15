@@ -20,7 +20,9 @@ void TruePeakMeter::prepare(double newSampleRate, int maxBlockSize)
 
 void TruePeakMeter::reset()
 {
-    for (auto& peak : peakDb)
+    for (auto& peak : currentPeakDb)
+        peak.store(-100.0f, std::memory_order_relaxed);
+    for (auto& peak : maxPeakDb)
         peak.store(-100.0f, std::memory_order_relaxed);
 }
 
@@ -48,8 +50,8 @@ void TruePeakMeter::process(const juce::AudioBuffer<float>& buffer) noexcept
 }
 
 void TruePeakMeter::processInterleaved(const float* interleavedSamples,
-                                        int numFrames,
-                                        int numChannels) noexcept
+                                       int numFrames,
+                                       int numChannels) noexcept
 {
     if (oversampler == nullptr || interleavedSamples == nullptr
         || numFrames <= 0 || numChannels <= 0)
@@ -88,14 +90,29 @@ void TruePeakMeter::processOversampledBlock(const juce::dsp::AudioBlock<float>& 
             peak = juce::jmax(peak, std::abs(data[sample]));
 
         const auto db = juce::Decibels::gainToDecibels(peak, -100.0f);
-        auto current = peakDb[static_cast<size_t>(channel)].load(std::memory_order_relaxed);
-        current = juce::jmax(current, db);
-        peakDb[static_cast<size_t>(channel)].store(current, std::memory_order_relaxed);
+
+        // Current peak is the peak of the latest processed audio block.
+        // It is intentionally NOT accumulated, otherwise the needle can get stuck.
+        currentPeakDb[static_cast<size_t>(channel)].store(db, std::memory_order_relaxed);
+
+        // Maximum true peak is retained until the processor is reset.
+        auto currentMax = maxPeakDb[static_cast<size_t>(channel)].load(std::memory_order_relaxed);
+        while (db > currentMax
+               && !maxPeakDb[static_cast<size_t>(channel)].compare_exchange_weak(
+                   currentMax, db, std::memory_order_relaxed))
+        {
+        }
     }
 }
 
-float TruePeakMeter::getPeakDb(int channel) const noexcept
+float TruePeakMeter::getCurrentPeakDb(int channel) const noexcept
 {
     const auto index = juce::jlimit(0, channelCount - 1, channel);
-    return peakDb[static_cast<size_t>(index)].load(std::memory_order_relaxed);
+    return currentPeakDb[static_cast<size_t>(index)].load(std::memory_order_relaxed);
+}
+
+float TruePeakMeter::getMaxPeakDb(int channel) const noexcept
+{
+    const auto index = juce::jlimit(0, channelCount - 1, channel);
+    return maxPeakDb[static_cast<size_t>(index)].load(std::memory_order_relaxed);
 }

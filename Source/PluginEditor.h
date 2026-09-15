@@ -2,6 +2,7 @@
 
 #include <JuceHeader.h>
 #include "PluginProcessor.h"
+#include "UI/AnalogMeter.h"
 
 class MaFuckinHolyVUMeterAudioProcessorEditor
     : public juce::AudioProcessorEditor,
@@ -24,9 +25,8 @@ private:
     juce::Label peakLabel;
     juce::Label rmsLabel;
     juce::Label statusLabel;
-    juce::ProgressBar levelBar;
-
-    double displayedLevel = 0.0;
+    juce::TextButton testSignalButton;
+    AnalogMeter analogMeter;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(
         MaFuckinHolyVUMeterAudioProcessorEditor)

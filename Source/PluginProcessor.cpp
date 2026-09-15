@@ -15,7 +15,6 @@ const juce::String MaFuckinHolyVUMeterAudioProcessor::getName() const { return J
 void MaFuckinHolyVUMeterAudioProcessor::prepareToPlay(double newSampleRate, int samplesPerBlock)
 {
     sampleRate = newSampleRate > 0.0 ? newSampleRate : 44100.0;
-    rmsMeter.prepare(sampleRate);
     vuMeter.prepare(sampleRate);
     truePeakMeter.prepare(sampleRate, samplesPerBlock);
 
@@ -38,8 +37,7 @@ void MaFuckinHolyVUMeterAudioProcessor::processBlock(juce::AudioBuffer<float>& b
     if (getMeterSource() == MeterSource::wasapiLoopback)
         return;
 
-    rmsMeter.process(buffer);
-    vuMeter.process({ rmsMeter.getRmsLinear(0), rmsMeter.getRmsLinear(1) }, buffer.getNumSamples());
+    vuMeter.process(buffer);
     truePeakMeter.process(buffer);
     updateVuPeakHold(buffer.getNumSamples());
 }
@@ -53,8 +51,7 @@ void MaFuckinHolyVUMeterAudioProcessor::processLoopbackSamples(
     if (sourceSampleRate > 0.0)
         sampleRate = sourceSampleRate;
 
-    rmsMeter.processInterleaved(interleavedSamples, numFrames, numChannels);
-    vuMeter.process({ rmsMeter.getRmsLinear(0), rmsMeter.getRmsLinear(1) }, numFrames);
+    vuMeter.processInterleaved(interleavedSamples, numFrames, numChannels);
     truePeakMeter.processInterleaved(interleavedSamples, numFrames, numChannels);
     updateVuPeakHold(numFrames);
 }
@@ -80,12 +77,14 @@ void MaFuckinHolyVUMeterAudioProcessor::updateVuPeakHold(int numSamples) noexcep
 
     for (int channel = 0; channel < channelCount; ++channel)
     {
-        const auto currentTruePeakDb = truePeakMeter.getCurrentPeakDb(channel);
+        // The VU peak-hold is based on the actual true peak, but displayed on
+        // the VU scale after the same -18 dBFS = 0 VU alignment.
+        const auto currentPeakDb = truePeakMeter.getCurrentPeakDb(channel);
         auto heldDb = vuPeakHoldDb[static_cast<size_t>(channel)].load(std::memory_order_relaxed);
 
-        if (currentTruePeakDb > heldDb)
+        if (currentPeakDb > heldDb)
         {
-            heldDb = currentTruePeakDb;
+            heldDb = currentPeakDb;
             vuPeakHoldElapsedSeconds[static_cast<size_t>(channel)] = 0.0f;
         }
         else

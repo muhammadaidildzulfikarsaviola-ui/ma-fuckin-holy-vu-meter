@@ -34,7 +34,7 @@ MaFuckinHolyVUMeterAudioProcessorEditor::MaFuckinHolyVUMeterAudioProcessorEditor
     titleLabel.setColour(juce::Label::textColourId, juce::Colour(0xffe0e0dc));
     addAndMakeVisible(titleLabel);
 
-    subtitleLabel.setText("STEREO ANALOG VU", juce::dontSendNotification);
+    subtitleLabel.setText("STEREO ANALOG VU + PEAK", juce::dontSendNotification);
     subtitleLabel.setFont(juce::Font(juce::FontOptions{}.withHeight(11.0f)));
     subtitleLabel.setColour(juce::Label::textColourId, juce::Colour(0xffa8aaa7));
     addAndMakeVisible(subtitleLabel);
@@ -193,14 +193,17 @@ void MaFuckinHolyVUMeterAudioProcessorEditor::resized()
 
 void MaFuckinHolyVUMeterAudioProcessorEditor::timerCallback()
 {
-    // VUMeter reports dBFS. Calibration is -18 dBFS = 0 VU,
-    // so convert to the meter's relative VU scale before drawing.
-    constexpr float vuCalibrationDb = 18.0f;
+    // The VU needle is based on the VU-ballistics processor.
+    // The peak needle uses a separate peak detector with hold/decay.
+    constexpr float vuCalibrationDb = 18.0f; // -18 dBFS = 0 VU
+
     const auto leftVu = audioProcessor.getVuDb(0) + vuCalibrationDb;
     const auto rightVu = audioProcessor.getVuDb(1) + vuCalibrationDb;
+    const auto leftPeak = audioProcessor.getPeakDb(0) + vuCalibrationDb;
+    const auto rightPeak = audioProcessor.getPeakDb(1) + vuCalibrationDb;
 
-    leftMeter.setLevelDb(leftVu);
-    rightMeter.setLevelDb(rightVu);
+    leftMeter.setLevelsDb(leftVu, leftPeak);
+    rightMeter.setLevelsDb(rightVu, rightPeak);
 
     if (standaloneMode)
     {

@@ -20,6 +20,7 @@ public:
     void processLoopbackSamples(const float* interleavedSamples, int numFrames, int numChannels, double sourceSampleRate) noexcept;
     void setMeterSource(MeterSource source) noexcept;
     MeterSource getMeterSource() const noexcept;
+    void resetMeterPeaks() noexcept;
 
     juce::AudioProcessorEditor* createEditor() override;
     bool hasEditor() const override;
@@ -30,8 +31,8 @@ public:
     double getTailLengthSeconds() const override;
     int getNumPrograms() override;
     int getCurrentProgram() override;
-    void setCurrentProgram(int index) override;
     const juce::String getProgramName(int index) override;
+    void setCurrentProgram(int index) override;
     void changeProgramName(int index, const juce::String& newName) override;
     void getStateInformation(juce::MemoryBlock& destData) override;
     void setStateInformation(const void* data, int sizeInBytes) override;

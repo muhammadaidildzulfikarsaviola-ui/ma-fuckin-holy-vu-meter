@@ -17,7 +17,11 @@ float dbToAngle(float db)
 }
 }
 
-AnalogMeter::AnalogMeter(juce::String channelLabel) : channel(std::move(channelLabel)) {}
+AnalogMeter::AnalogMeter(juce::String channelLabel, juce::String meterLabel)
+    : channel(std::move(channelLabel)),
+      meterType(std::move(meterLabel))
+{
+}
 
 void AnalogMeter::setLevelDb(float db) noexcept
 {
@@ -55,7 +59,8 @@ void AnalogMeter::paint(juce::Graphics& g)
         g.fillEllipse(screw);
         g.setColour(juce::Colour(0xff8d8a80));
         g.drawEllipse(screw, 1.0f);
-        g.drawLine(screw.getX() + 2.5f, screw.getCentreY(), screw.getRight() - 2.5f, screw.getCentreY(), 1.0f);
+        g.drawLine(screw.getX() + 2.5f, screw.getCentreY(), screw.getRight() - 2.5f,
+                   screw.getCentreY(), 1.0f);
     }
 
     auto inner = bounds.reduced(14.0f, 12.0f);
@@ -69,7 +74,6 @@ void AnalogMeter::paint(juce::Graphics& g)
     g.setColour(juce::Colour(0xff8c806c));
     g.drawEllipse(face, 1.2f);
 
-    // Keep all scale and needle drawing inside the physical dial face.
     g.saveState();
     g.reduceClipRegion(face.toNearestInt());
 
@@ -99,12 +103,21 @@ void AnalogMeter::paint(juce::Graphics& g)
     g.setColour(juce::Colour(0xff171817));
     g.setFont(juce::Font(juce::FontOptions{}.withHeight(18.0f).withStyle("Bold")));
     g.drawText(channel, face.withX(face.getX() + 16.0f).withY(face.getY() + 14.0f)
-                       .withWidth(28.0f).withHeight(24.0f).toNearestInt(), juce::Justification::centred);
-    g.setFont(juce::Font(juce::FontOptions{}.withHeight(17.0f).withStyle("Bold")));
-    g.drawText("VU", face.withY(face.getY() + face.getHeight() * 0.48f).withHeight(26.0f).toNearestInt(),
+                       .withWidth(28.0f).withHeight(24.0f).toNearestInt(),
                juce::Justification::centred);
+
+    g.setFont(juce::Font(juce::FontOptions{}.withHeight(17.0f).withStyle("Bold")));
+    g.drawText(meterType == "PEAK" ? "PEAK" : "VU",
+               face.withY(face.getY() + face.getHeight() * 0.47f).withHeight(26.0f).toNearestInt(),
+               juce::Justification::centred);
+
+    g.setFont(juce::Font(juce::FontOptions{}.withHeight(11.0f).withStyle("Bold")));
+    g.drawText(meterType, face.withX(face.getX() + 18.0f).withY(face.getY() + face.getHeight() * 0.62f)
+                        .withWidth(54.0f).withHeight(16.0f).toNearestInt(),
+               juce::Justification::centredLeft);
     g.setFont(juce::Font(juce::FontOptions{}.withHeight(10.0f)));
-    g.drawText("0 VU = -18 dBFS", face.withY(face.getY() + face.getHeight() * 0.63f).withHeight(16.0f).toNearestInt(),
+    g.drawText("0 VU = -18 dBFS",
+               face.withY(face.getY() + face.getHeight() * 0.65f).withHeight(16.0f).toNearestInt(),
                juce::Justification::centred);
 
     const auto needleTip = polarPoint(centre, radius * 0.66f, dbToAngle(levelDb));

@@ -33,8 +33,30 @@ void RMSMeter::process(const juce::AudioBuffer<float>& buffer)
             sumSquares += value * value;
         }
 
-        const auto rms = static_cast<float>(std::sqrt(sumSquares / sampleCount));
-        rmsLinear[static_cast<size_t>(channel)].store(rms, std::memory_order_relaxed);
+        rmsLinear[static_cast<size_t>(channel)].store(
+            static_cast<float>(std::sqrt(sumSquares / sampleCount)), std::memory_order_relaxed);
+    }
+}
+
+void RMSMeter::processInterleaved(const float* samples, int numFrames, int numChannels) noexcept
+{
+    for (int channel = 0; channel < channelCount; ++channel)
+    {
+        if (samples == nullptr || numFrames <= 0 || channel >= numChannels)
+        {
+            rmsLinear[static_cast<size_t>(channel)].store(0.0f, std::memory_order_relaxed);
+            continue;
+        }
+
+        double sumSquares = 0.0;
+        for (int frame = 0; frame < numFrames; ++frame)
+        {
+            const auto value = static_cast<double>(samples[frame * numChannels + channel]);
+            sumSquares += value * value;
+        }
+
+        rmsLinear[static_cast<size_t>(channel)].store(
+            static_cast<float>(std::sqrt(sumSquares / numFrames)), std::memory_order_relaxed);
     }
 }
 

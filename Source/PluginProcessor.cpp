@@ -16,8 +16,10 @@ const juce::String MaFuckinHolyVUMeterAudioProcessor::getName() const
     return JucePlugin_Name;
 }
 
-void MaFuckinHolyVUMeterAudioProcessor::prepareToPlay(double, int)
+void MaFuckinHolyVUMeterAudioProcessor::prepareToPlay(double sampleRate, int)
 {
+    peakMeter.prepare();
+    rmsMeter.prepare(sampleRate);
 }
 
 void MaFuckinHolyVUMeterAudioProcessor::releaseResources()
@@ -42,15 +44,21 @@ void MaFuckinHolyVUMeterAudioProcessor::processBlock(
 {
     juce::ScopedNoDenormals noDenormals;
 
-    // Temporary passthrough.
-    // Meter DSP will be connected here in the next milestone.
-    for (int channel = 0; channel < buffer.getNumChannels(); ++channel)
-    {
-        auto* data = buffer.getWritePointer(channel);
+    peakMeter.process(buffer);
+    rmsMeter.process(buffer);
 
-        for (int sample = 0; sample < buffer.getNumSamples(); ++sample)
-            data[sample] = data[sample];
-    }
+    // Meter only. Keep the audio path untouched so the plugin remains a
+    // transparent passthrough when inserted into a DAW channel.
+}
+
+float MaFuckinHolyVUMeterAudioProcessor::getPeakDb() const noexcept
+{
+    return peakMeter.getPeakDb();
+}
+
+float MaFuckinHolyVUMeterAudioProcessor::getRmsDb() const noexcept
+{
+    return rmsMeter.getRmsDb();
 }
 
 bool MaFuckinHolyVUMeterAudioProcessor::hasEditor() const

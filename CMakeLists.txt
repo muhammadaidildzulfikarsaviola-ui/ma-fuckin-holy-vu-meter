@@ -10,6 +10,7 @@ add_subdirectory(JUCE)
 juce_add_plugin(MaFuckinHolyVUMeter
     COMPANY_NAME "Aidil Audio"
     PRODUCT_NAME "MA Fuckin Holy VU Meter"
+    BUNDLE_ID com.aidil.audio.mafuckinholyvumeter
     PLUGIN_MANUFACTURER_CODE Aidl
     PLUGIN_CODE MFVM
     FORMATS VST3 Standalone
@@ -19,6 +20,8 @@ juce_add_plugin(MaFuckinHolyVUMeter
     IS_MIDI_EFFECT FALSE
     COPY_PLUGIN_AFTER_BUILD TRUE
 )
+
+juce_generate_juce_header(MaFuckinHolyVUMeter)
 
 target_sources(MaFuckinHolyVUMeter
     PRIVATE

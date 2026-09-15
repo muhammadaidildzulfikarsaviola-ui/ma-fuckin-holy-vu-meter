@@ -11,6 +11,7 @@ public:
     void prepare(double sampleRate);
     void reset();
     void process(const juce::AudioBuffer<float>& buffer);
+    void processInterleaved(const float* samples, int numFrames, int numChannels) noexcept;
     void processTestSignal(int numSamples, double sampleRate, double& phase);
 
     float getRmsDb(int channel = 0) const noexcept;
